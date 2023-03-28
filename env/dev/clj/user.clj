@@ -2,11 +2,12 @@
   "Userspace functions you can run by default in your local REPL."
   (:require
    [re-pipe.config :refer [env]]
-    [clojure.pprint]
-    [clojure.spec.alpha :as s]
-    [expound.alpha :as expound]
-    [mount.core :as mount]
-    [re-pipe.core :refer [start-app]]))
+   [clojure.pprint]
+   [clojure.spec.alpha :as s]
+   [expound.alpha :as expound]
+   [mount.core :as mount]
+   [clojure.tools.logging :as log]
+   [re-pipe.core :refer [start-app]]))
 
 (alter-var-root #'s/*explain-out* (constantly expound/printer))
 
@@ -16,6 +17,7 @@
   "Starts application.
   You'll usually want to run this on startup."
   []
+  (log/debug "\n\nSTARTING grooob.com")
   (mount/start-without #'re-pipe.core/repl-server))
 
 (defn stop

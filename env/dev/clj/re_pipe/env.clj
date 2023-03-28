@@ -8,8 +8,8 @@
   {:init
    (fn []
      (parser/cache-off!)
-     (log/info "\n-=[re-pipe started successfully using the development profile]=-"))
+     (log/info "-=[re-pipe started successfully using the development profile]=-"))
    :stop
    (fn []
-     (log/info "\n-=[re-pipe has shut down successfully]=-"))
+     (log/info "-=[re-pipe has shut down successfully]=-"))
    :middleware wrap-dev})

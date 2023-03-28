@@ -38,7 +38,17 @@
                  [ring/ring-defaults "0.3.3"]
                  [selmer "1.12.50"]
                  [thheller/shadow-cljs "2.17.0" :scope "provided"]
-                 [hiccup "1.0.5"]]
+                 [hiccup "1.0.5"]
+
+                 [io.replikativ/konserve "0.7.294"]
+                 [io.replikativ/datahike "0.6.1531"]
+                 [io.replikativ/datahike-jdbc "0.1.2-SNAPSHOT"]
+                 [com.hyperfiddle/rcf "20220405"]
+                 [buddy "2.0.0"]]
+
+
+
+
 
   :min-lein-version "2.0.0"
   

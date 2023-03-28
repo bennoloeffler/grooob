@@ -2,6 +2,7 @@
   (:require
     [re-frame.core :as rf]
     [ajax.core :as ajax]
+    [day8.re-frame.http-fx]
     [reitit.frontend.easy :as rfe]
     [reitit.frontend.controllers :as rfc]))
 
@@ -28,7 +29,7 @@
 (rf/reg-event-db
   :set-docs
   (fn [db [_ docs]]
-    (assoc db :docs docs)))
+    (assoc db :docs "docs")))
 
 (rf/reg-event-fx
   :fetch-docs
@@ -36,7 +37,7 @@
     {:http-xhrio {:method          :get
                   :uri             "/docs"
                   :response-format (ajax/raw-response-format)
-                  :on-success       [:set-docs]}}))
+                  :on-success      [:set-docs]}}))
 
 (rf/reg-event-db
   :common/set-error
@@ -48,7 +49,185 @@
   (fn [_ _]
     {:dispatch [:fetch-docs]}))
 
+;; Define a co-effect to get the current time
+(rf/reg-cofx
+  :current-time
+  (fn [cofx _]
+    ;(println "cofx system-time: " (.now js/Date))
+    (assoc cofx :current-time (.now js/Date))))
+
+;; Define an event to get the current time and store it in the app-db
+(rf/reg-event-fx
+  :set-current-time
+  [(rf/inject-cofx :current-time)]
+  (fn [cofx _]
+    ;(println "event :set-current-time")
+    (let [time (:current-time cofx)
+          db   (:db cofx)]
+      ;(println "time: " time)
+      {:db (assoc db :current-time time)})))
+
+;; Define a subscription that reads the current time from the app-db
+(rf/reg-sub
+  :current-time
+  (fn [db _]
+    (:current-time db)))
+
+
+(rf/reg-cofx
+  :user/random
+  (fn [cofx _]
+    (assoc cofx
+      :user/random {:user/id       (str (rand-int 1000000) "-abc")
+                    :user/name     "Armin Benno Cargo"
+                    :user/password "w4nk2lk3jh45mbn"
+                    :user/email    "abc@example.com"
+                    :user/status   :user.status/active})))
+
+(rf/reg-event-fx
+  :user/add-random-user
+  [(rf/inject-cofx :user/random)]
+  (fn [cofx _]
+    (let [u  (cofx :user/random)
+          db (cofx :db)]
+      ;(println "event: u=" u)
+      {:db (assoc db :current-random-user u)})))
+
+(rf/reg-event-db
+  :login-success
+  (fn [db [_ data]]
+    (println "login success: " data)
+    (assoc db :user data)))
+
+(rf/reg-event-db
+  :login-failure
+  (fn [db [_ data]]
+    (println "login error: " data)
+    (assoc db :user "login failed")))
+
+(rf/reg-event-fx
+  :user/login
+  (fn [cofx [_ user pw]]
+    (println "event :user/login, data= " user ", " pw)
+    {
+     :db         (-> (:db cofx)
+                     (assoc :tmp-user user)
+                     (assoc :tmp-pw pw))
+
+     :http-xhrio {:method          :post
+                  :params          {:user user :pw pw}
+                  :uri             "/api/login"
+                  :format          (ajax/json-request-format)
+                  :response-format (ajax/raw-response-format {:keywords? true})
+                  :on-success      [:login-success]
+                  :on-failure      [:login-failure]}}))
+
+
+(rf/reg-event-db
+  :register-success
+  (fn [db [_ data]]
+    (println "register success: " data)
+    db))
+
+(rf/reg-event-db
+  :register-failure
+  (fn [db [_ data]]
+    (println "register-error: " data)
+    ; :common/set-error
+    ;(assoc db : "register failed")))
+    db))
+
+(rf/reg-event-fx
+  :user/register
+  (fn [cofx [_ data]]
+    (println "event :user/register, data= " data)
+    {
+     ;:db         (-> (:db cofx)
+     ;                (assoc :tmp-user user)
+     ;                (assoc :tmp-pw pw)
+
+     :http-xhrio {:method          :post
+                  :params          data
+                  :uri             "/api/register"
+                  :format          (ajax/json-request-format)
+                  :response-format (ajax/raw-response-format {:keywords? true})
+                  :on-success      [:register-success]
+                  :on-failure      [:register-failure]}}))
+
+
+(rf/reg-event-db
+  :logout-success
+  (fn [db [_ data]]
+    (println "logout success: " data)
+    db))
+
+(rf/reg-event-db
+  :logout-failure
+  (fn [db [_ data]]
+    (println "logout-error: " data)
+    ; :common/set-error
+    ;(assoc db : "register failed")))
+    db))
+
+(rf/reg-event-fx
+  :user/logout
+  (fn [cofx [_ data]]
+    (println "event :user/logout, data= " data)
+    {
+     ;:db         (-> (:db cofx)
+     ;                (assoc :tmp-user user)
+     ;                (assoc :tmp-pw pw)
+
+     :http-xhrio {:method          :post
+                  :params          data
+                  :uri             "/api/logout"
+                  :format          (ajax/json-request-format)
+                  :response-format (ajax/raw-response-format {:keywords? true})
+                  :on-success      [:logout-success]
+                  :on-failure      [:logout-failure]}}))
+
+
+(rf/reg-event-db
+  :authorized-success
+  (fn [db [_ data]]
+    (println "authorized success: " data)
+    db))
+
+(rf/reg-event-db
+  :authorized-failure
+  (fn [db [_ data]]
+    (println "authorized-error: " data)
+    ; :common/set-error
+    ;(assoc db : "register failed")))
+    db))
+
+(rf/reg-event-fx
+  :user/authorized
+  (fn [cofx [_ data]]
+    (println "event :user/authorized, data= " data)
+    {
+     ;:db         (-> (:db cofx)
+     ;                (assoc :tmp-user user)
+     ;                (assoc :tmp-pw pw)
+
+     :http-xhrio {:method          :post
+                  :params          data
+                  :uri             "/api/authorized"
+                  :format          (ajax/json-request-format)
+                  :response-format (ajax/raw-response-format {:keywords? true})
+                  :on-success      [:authorized-success]
+                  :on-failure      [:authorized-failure]}}))
+
+
 ;;subscriptions
+
+;; https://day8.github.io/re-frame/subscriptions/
+
+
+(rf/reg-sub
+  :current-random-user
+  (fn [db _]
+    (-> db :current-random-user)))
 
 (rf/reg-sub
   :common/route
@@ -76,3 +255,6 @@
   :common/error
   (fn [db _]
     (:common/error db)))
+
+(defn from-events []
+  {:from :events})

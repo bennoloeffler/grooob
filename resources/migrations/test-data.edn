@@ -1,0 +1,11 @@
+{:tx-data [{
+            :user/name   "Armin Benno Cargo"
+            :user/email  "abc@example.com"
+            :user/password "secret"
+            :user/status :user.status/active}
+
+           {
+            :user/name   "Emil Ferdinant Gans"
+            :user/password "very-secret"
+            :user/email  "efg@example.com"
+            :user/status :user.status/cancelled}]}

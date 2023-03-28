@@ -1,9 +1,16 @@
 {
   "devDependencies": {
+    "bulma": "^0.9.4",
+    "node-sass": "^8.0.0",
     "shadow-cljs": "^2.16.5"
   },
   "dependencies": {
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
+  },
+  "scripts": {
+    "css-build": "node-sass --omit-source-map-url resources/scss/screen.scss resources/public/css/screen.css",
+    "css-watch": "npm run css-build -- --watch",
+    "start": "npm run css-watch"
   }
 }

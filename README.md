@@ -1,21 +1,84 @@
-# re-pipe
+# grooob.com
 
-generated using Luminus version "4.33"
+## Vision
+Planning as rough as possible.
+Less Details. Less data. Less time.
+Together simultaneously as Team.
+View everything in Realtime.
 
-FIXME
+## TODOs / Features / Releases
+- a data model for user management, company management
+- a data model for domain-model: project, task, capacity, ...
+- a functional core for all business logic
+- authorization and admin role
+- invitation
+- user administration (pending, guest, ...)
+- resend password
 
-## Prerequisites
+## technical decisions
+- clojure
+- server with datahike
+- Client: re-frame
+- model, logic and spec in cljc in order to use at client and server
+- EITHER: drawing in a canvas: reactive client with some rx-tool
+- OR: drawing svg in re-frame
 
-You will need [Leiningen][1] 2.0 or above installed.
 
-[1]: https://github.com/technomancy/leiningen
+## development mode
+```
+npm i react
+npm i react-dom
+npm i shadow-cljs --save-dev
+npm install node-sass --save-dev
+npm install bulma --save-dev
+```
+
+package.json should look like this
+```
+{
+  "devDependencies": {
+    "bulma": "^0.9.4",
+    "node-sass": "^8.0.0",
+    "shadow-cljs": "^2.16.5"
+  },
+  "dependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "scripts": {
+    "css-build": "node-sass --omit-source-map-url resources/scss/screen.scss resources/public/css/screen.css",
+    "css-watch": "npm run css-build -- --watch",
+    "start": "npm run css-watch"
+  }
+}
+```
 
 ## Running
 
-To start a web server for the application, run:
+watch and compile sass
+```
+npm run start
+```
 
-    lein run 
+watch and compile shadow-cljs
+```
+shadow-cljs watch app
+```
 
-## License
+run server in repl
+```
+(start)
+(stop)
+(restart)
+```
 
-Copyright © 2022 FIXME
+run client in browser
+```
+localhost:3000
+```
+
+test api in swagger
+```
+localhost:3000/swagger-ui
+```
+
