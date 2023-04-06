@@ -26,18 +26,18 @@
   (fn [_ [_ url-key params query]]
     {:common/navigate-fx! [url-key params query]}))
 
-(rf/reg-event-db
-  :set-docs
-  (fn [db [_ docs]]
-    (assoc db :docs "docs")))
+#_(rf/reg-event-db
+    :set-docs
+    (fn [db [_ docs]]
+      (assoc db :docs "docs")))
 
-(rf/reg-event-fx
-  :fetch-docs
-  (fn [_ _]
-    {:http-xhrio {:method          :get
-                  :uri             "/docs"
-                  :response-format (ajax/raw-response-format)
-                  :on-success      [:set-docs]}}))
+#_(rf/reg-event-fx
+    :fetch-docs
+    (fn [_ _]
+      {:http-xhrio {:method          :get
+                    :uri             "/docs"
+                    :response-format (ajax/raw-response-format)
+                    :on-success      [:set-docs]}}))
 
 (rf/reg-event-db
   :common/set-error
@@ -47,7 +47,7 @@
 (rf/reg-event-fx
   :page/init-home
   (fn [_ _]
-    {:dispatch [:fetch-docs]}))
+    {} #_{:dispatch [:fetch-docs]}))
 
 ;; Define a co-effect to get the current time
 (rf/reg-cofx
@@ -66,6 +66,7 @@
           db   (:db cofx)]
       ;(println "time: " time)
       {:db (assoc db :current-time time)})))
+       ;:dispatch [:alert-blink]})))
 
 ;; Define a subscription that reads the current time from the app-db
 (rf/reg-sub
@@ -97,13 +98,19 @@
   :login-success
   (fn [db [_ data]]
     (println "login success: " data)
-    (assoc db :user data)))
+    (-> db
+        (assoc :user data)
+        (dissoc :user-tmp))))
 
-(rf/reg-event-db
+(rf/reg-event-fx
   :login-failure
   (fn [db [_ data]]
     (println "login error: " data)
-    (assoc db :user "login failed")))
+    ;(assoc db :user "login failed")
+    {
+     :fx  [ [:dispatch   [:set-alert (str (-> data :response :message))]]
+           #_[:http-xhrio {:method :GET  :url "http://somewhere.com/"}]
+           #_(when (> 2 3) [:full-screen true])]}))
 
 (rf/reg-event-fx
   :user/login
@@ -111,14 +118,15 @@
     (println "event :user/login, data= " user ", " pw)
     {
      :db         (-> (:db cofx)
-                     (assoc :tmp-user user)
-                     (assoc :tmp-pw pw))
+                     (assoc :user-tmp user))
+                     ;(assoc :tmp-pw pw))
 
      :http-xhrio {:method          :post
                   :params          {:user user :pw pw}
                   :uri             "/api/login"
                   :format          (ajax/json-request-format)
-                  :response-format (ajax/raw-response-format {:keywords? true})
+                  :response-format (ajax/transit-response-format {:keywords? true})
+                  ;:response-format (ajax/raw-response-format {:keywords? true})
                   :on-success      [:login-success]
                   :on-failure      [:login-failure]}}))
 
@@ -129,13 +137,16 @@
     (println "register success: " data)
     db))
 
-(rf/reg-event-db
+(rf/reg-event-fx
   :register-failure
   (fn [db [_ data]]
     (println "register-error: " data)
     ; :common/set-error
     ;(assoc db : "register failed")))
-    db))
+    {
+     :fx  [ [:dispatch   [:set-alert (str (-> data :response :message))]]
+           #_[:http-xhrio {:method :GET  :url "http://somewhere.com/"}]
+           #_(when (> 2 3) [:full-screen true])]}))
 
 (rf/reg-event-fx
   :user/register
@@ -150,16 +161,32 @@
                   :params          data
                   :uri             "/api/register"
                   :format          (ajax/json-request-format)
-                  :response-format (ajax/raw-response-format {:keywords? true})
+                  :response-format (ajax/transit-response-format {:keywords? true})
                   :on-success      [:register-success]
                   :on-failure      [:register-failure]}}))
 
+(rf/reg-event-fx
+  :login-google
+  (fn [cofx [_ data]]
+    {:http-xhrio {:method          :post
+                  :params          data
+                  :uri             "/api/login-google"
+                  :format          (ajax/json-request-format)
+                  :response-format (ajax/transit-response-format {:keywords? true})
+                  :on-success      [:login-success]
+                  :on-failure      [:login-failure]}}))
+
+(rf/reg-event-db
+  :login-google-success
+  (fn [db [_ data]]
+    (println "login-google success: " data)
+    (dissoc db :user)))
 
 (rf/reg-event-db
   :logout-success
   (fn [db [_ data]]
     (println "logout success: " data)
-    db))
+    (dissoc db :user)))
 
 (rf/reg-event-db
   :logout-failure
@@ -167,7 +194,7 @@
     (println "logout-error: " data)
     ; :common/set-error
     ;(assoc db : "register failed")))
-    db))
+    (dissoc db :user)))
 
 (rf/reg-event-fx
   :user/logout
@@ -184,8 +211,9 @@
                   :format          (ajax/json-request-format)
                   :response-format (ajax/raw-response-format {:keywords? true})
                   :on-success      [:logout-success]
-                  :on-failure      [:logout-failure]}}))
-
+                  :on-failure      [:logout-failure]}
+     :dispatch-later {:ms 3000 :dispatch [:common/navigate! :home]}}))
+#_[:dispatch-later {:ms 200 :dispatch [:event-id1 "param"]}]
 
 (rf/reg-event-db
   :authorized-success
@@ -193,13 +221,16 @@
     (println "authorized success: " data)
     db))
 
-(rf/reg-event-db
+(rf/reg-event-fx
   :authorized-failure
-  (fn [db [_ data]]
+  (fn [_ [_ data]]
     (println "authorized-error: " data)
     ; :common/set-error
     ;(assoc db : "register failed")))
-    db))
+    {
+     :fx  [ [:dispatch   [:set-alert "ERROR: you are not logged in!"]]
+            #_[:http-xhrio {:method :GET  :url "http://somewhere.com/"}]
+            #_(when (> 2 3) [:full-screen true])]}))
 
 (rf/reg-event-fx
   :user/authorized
@@ -252,9 +283,12 @@
     (:docs db)))
 
 (rf/reg-sub
-  :common/error
+  :user
   (fn [db _]
-    (:common/error db)))
+    (:user db)))
+
 
 (defn from-events []
   {:from :events})
+
+

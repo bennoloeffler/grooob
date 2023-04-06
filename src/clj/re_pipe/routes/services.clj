@@ -11,7 +11,8 @@
     [ring.util.http-response :refer :all]
     [re-pipe.auth :refer :all]
     [clojure.java.io :as io]
-    [puget.printer :refer [cprint]])
+    [puget.printer :refer [cprint]]
+    [re-pipe.db.core :as db])
 
 
   (:import [clojure.lang ExceptionInfo]))
@@ -76,9 +77,22 @@
                               (catch ExceptionInfo e
                                 (if (= (:error (ex-data e))
                                        :user-exists)
-                                  (conflict {:message "Failed. User already exists."})
+                                  (conflict {:message "Register Failed. User already exists."})
                                   (throw e))))))}}]
 
+   ["/login-google"
+    {:post {:summary    "user authentictes with :session :identity"
+            ;:parameters {:body {:user string? :pw string?}}
+            :handler    (fn [{session :session oauth2 :oauth2/access-tokens :as data}]
+                          ;(println "AFTER client got session and called back to server:")
+                          ;(cprint data)
+                          (if (db/check-user-google (-> data :session :identity))
+                            (-> ; TODO do we need that or is the session just kept?
+                              (ok {:identity (-> data :session :identity)})
+                              (assoc :session (assoc session :identity (-> data :session :identity))))
+                            ;(ok {:identity user :session session})
+                            (unauthorized
+                              {:message "client tried google login - but no user with token found."})))}}]
    ["/login"
     {:post {:summary    "user authentictes with email and password. auth-type = :auth (EDN) or \"auth\" (json)"
             :parameters {:body {:user string? :pw string?}}
@@ -96,7 +110,7 @@
 
    ["/logout"
     {:post {:handler (fn [data] ; {{:keys [user pw]} :body-params}
-                       ;(println data)
+                       ;(cprint data)
                        (if-authorized
                          data
                          (-> (ok {:message "logged out successfully"})
@@ -108,8 +122,8 @@
     {:post {:handler (fn [{session :session :as data}]
                        ;(cprint data)
                        ;(println)
-                       (println "session:")
-                       (cprint session)
+                       ;(println "session:")
+                       ;(cprint session)
                        (if-authorized data
                                       (ok {:answer "something authorized"}))
                        #_(if (:identity session)

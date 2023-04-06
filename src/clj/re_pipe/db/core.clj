@@ -9,7 +9,8 @@
     [mount.core :refer [defstate] :as mount]
     [re-pipe.config :refer [env]]
     [clojure.tools.logging :as log]
-    [hyperfiddle.rcf :refer [tests]])
+    [hyperfiddle.rcf :refer [tests]]
+    [belib.core :as b])
   (:import [java.io PushbackReader]
            [java.util UUID]))
 
@@ -31,14 +32,15 @@
   (def res (read-resource "migrations/schema.edn"))
   true := (some? res))
 
+
 (defn apply-tx-from-file
   "Just applies the data in the file in one transaction."
   [conn file]
-  (let [norms-map (read-resource file)]
+  (let [data (read-resource file)]
     ;(println (str "transacting from file: " file))
-    (pprint/pprint norms-map)
-    (d/transact conn norms-map)
-    #_(c/ensure-conforms conn norms-map (keys norms-map))))
+    (pprint/pprint data)
+    (d/transact conn data)))
+
 
 (defn delete-db
   "Deletes the complete database including schema.
@@ -55,34 +57,12 @@
   Use :cfg-db from component env as config."
   []
   (let [cfg (env :cfg-db)]
-    (println "cfg: " cfg)
+    ;(println "cfg: " cfg)
     (when-not (d/database-exists? cfg)
       (log/warn "going to create a new database: ")
       (log/info cfg)
       (d/create-database cfg))
     (d/connect cfg)))
-
-(comment
-  (with-redefs [env {:cfg-db {:name "bels-db"
-                              :store {:backend :file :path "/tmp/example"}
-                              :schema-flexibility :read}}]
-    (connect-db)
-    (delete-db)))
-
-#_(defn show-schema
-    "Show currently installed schema"
-    [conn]
-    (let [system-ns #{"db" "db.type" "db.install" "db.part"
-                      "db.lang" "fressian" "db.unique" "db.excise"
-                      "db.cardinality" "db.fn" "db.sys" "db.bootstrap"
-                      "db.alter"}]
-      (d/q '[:find ?ident
-             :in $ ?system-ns
-             :where
-             [?e :db/ident ?ident]
-             [(namespace ?ident) ?ns]]
-           ;;[(not (contains? ?system-ns)) ?ns]]
-           (d/db conn) system-ns)))
 
 
 (defn show-schema
@@ -103,6 +83,14 @@
 
 (defn install-schema [conn]
   (apply-tx-from-file conn "migrations/schema.edn"))
+
+
+(comment
+  (with-redefs [env {:cfg-db {:name "bels-db"
+                              :store {:backend :file :path "/tmp/example"}
+                              :schema-flexibility :read}}]))
+
+
 
 
 (defn connect-and-schema-db
@@ -135,11 +123,24 @@
 (defn stop-conn []
   (mount/stop #'re-pipe.config/env #'re-pipe.db.core/conn))
 
+(defn conn-running? []
+  ((mount/running-states) (str #'conn)))
+
 (comment
   (start-conn)
   (stop-conn)
+  (connect-db)
+  (delete-db)
+  (connect-db)
+  (install-schema conn)
+  (show-schema conn)
   (install-test-data conn)
   (show-schema conn))
+
+
+
+
+
 
 (defn show-users []
   (d/q '[:find [(pull ?e [:user/email :user/name :user/password {:user/status [:db/ident]}]) ...]
@@ -182,7 +183,7 @@
                  db attr val)))
 
 (comment
-  (seq (find-one-by @conn :user/email "efg@example.com")))
+  (seq (find-one-by @conn :user/email "loeffler@v-und-s.de" #_"efg@example.com")))
 
 (defn check-and-add-user
   "Adds new user to a database"
@@ -195,6 +196,30 @@
                        :user/email    email}])
     (throw (ex-info (str email " : this :user/email already exists!")
                     {:error "email exists" :email email}))))
+
+(defn check-and-add-user-google!
+  "Adds new user to a database, if not already exists with tokens"
+  [status email tokens]
+  ; TODO
+  ; (pr-str x) and (read-string (pr-str x)) with
+  ;  :oauth2/access-tokens {:google
+  (let [user (find-one-by (d/db conn) :user/email email)
+        password (:user/password user)
+        status-now (:user/status user)]
+    (if-not password
+      (if-not user
+         (d/transact conn [{
+                            ;:user/name     name
+                            :user/google-token (pr-str tokens)
+                            :user/status   status
+                            :user/email    email}])
+         (log/info "user" email "exists already with google-token - TODO? check token date?"))
+      (throw (ex-info (str email " : this :user/email already has password!")
+                      {:error "email exists with password" :email email})))))
+
+
+
+
 
 (comment
   (check-and-add-user conn "Bruno Banani" :user.status/pending "bb@heaven.com" "pw"))
@@ -240,14 +265,25 @@
 (defn find-user-2 [conn email]
   "Find user by email"
   (when-let [id (find-one-by @conn :user/email email)]
-    (println "id" id)
+    ;(println "id" id)
     (let [raw (d/pull @conn ; conn
                       '[:user/email :user/name {:user/status [:db/ident]} :user/password] ; pull string
                       (:db/id id))
-          _ (println raw)
+          ;_ (println raw)
           {email :user/email name :user/name  status :user/status password :user/password} raw]
       [email name (:db/ident status) password])))
 
+(defn find-user-by-email-raw [email]
+  "Find user by email"
+  (when-let [id (find-one-by @conn :user/email email)]
+    ;(println "id" id)
+    (let [raw (d/pull @conn ; conn
+                      '[:user/email :user/name {:user/status [:db/ident]} :user/password :user/google-token] ; pull string
+                      (:db/id id))]
+          ;_ (println raw)
+          ;{email :user/email name :user/name  status :user/status password :user/password} raw]
+      raw
+      #_[email name (:db/ident status) password])))
 
 
 
@@ -323,8 +359,42 @@
                       email
                       password))
 
+(defn check-user-google
+  "is there a user with google-token"
+  [email]
+  (let [user (find-user-by-email-raw email)
+        tokens (:user/google-token user)]
+    (and tokens user)))
+
+
 (comment
-  (create-user! "Benno" "bel" "pw"))
+  (start-conn)
+  (stop-conn)
+
+  (delete-db)
+  (connect-db)
+  (install-schema conn)
+  (show-schema conn)
+
+  (create-user! "Benno" "bel2" "pw")
+  (check-and-add-user-google! "Benno" "bel3" "token")
+  (find-user-by-email-raw "loeffler@v-und-s.de")
+  (del-user conn "loeffler@v-und-s.de")
+  (find-user-by-email-raw "bel3")
+  (find-user-2 conn "bel3"))
 
 ; login user
 
+(comment
+  (b/test-belib))
+(tests
+  (when (conn-running?) (stop-conn))
+  (start-conn)
+  (delete-db)
+  (stop-conn)
+  (start-conn)
+  (count (show-schema conn)) := 10
+  (install-test-data conn)
+  ((find-user-by-email-raw "abc@example.com") :user/password) := "secret"
+
+  nil)

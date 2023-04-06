@@ -44,7 +44,13 @@
                  [io.replikativ/datahike "0.6.1531"]
                  [io.replikativ/datahike-jdbc "0.1.2-SNAPSHOT"]
                  [com.hyperfiddle/rcf "20220405"]
-                 [buddy "2.0.0"]]
+                 [buddy "2.0.0"]
+                 [ring-oauth2 "0.2.0"]
+                 [clj-http "3.12.3"]]
+
+                 ;[belib "0.1.0-SNAPSHOT"]]
+
+
 
 
 

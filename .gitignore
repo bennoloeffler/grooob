@@ -1,3 +1,4 @@
+re-pipe.iml
 /target
 /lib
 /classes
@@ -10,9 +11,14 @@ test-config.edn
 /.lein-*
 profiles.clj
 /.env
+/.idea
+/.lsp
+/.calva
+/.clj-kondo
 .nrepl-port
 /.shadow-cljs
 /node_modules
 /log
-
+.DS_Store
+/.vscode
 

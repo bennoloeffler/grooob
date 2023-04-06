@@ -9,6 +9,11 @@
     (throw (ex-info "User exists" {:email email :error :user-exists}))
     (db/create-user! name email (hashers/derive password))))
 
+#_(defn create-user-google! [name email token]
+    (if (db/find-user-by-email email)
+      (throw (ex-info "User exists with password " {:email email :error :user-exists}))
+      (db/create-user! name email (hashers/derive token))))
+
 (comment
   (create-user! "Benno" "bel@belbel" "bel-pw"))
 

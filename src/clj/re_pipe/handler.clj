@@ -9,7 +9,8 @@
     [ring.middleware.content-type :refer [wrap-content-type]]
     [ring.middleware.webjars :refer [wrap-webjars]]
     [re-pipe.env :refer [defaults]]
-    [mount.core :as mount]))
+    [mount.core :as mount]
+    [ring.util.response :as response]))
 
 (mount/defstate init-app
                 :start ((or (:init defaults) (fn [])))
@@ -37,7 +38,12 @@
                       (wrap-webjars async-aware-default-handler))
                     (ring/create-default-handler
                       {:not-found
-                       (constantly (error-page {:status 404, :title "404 - Page not found"}))
+                       #_(response/resource-response "home.html")
+                       #_(layout/render nil "home.html")
+                       #_(response/redirect "/#/not-found")
+                       #_(constantly (error-page {:status 404, :title "404 - Page not found"}))
+                       (constantly (do #_(println (error-page {:status 404, :title "404 - Page not found"}))
+                                       (error-page {:status 404, :title "404 - Page not found"})))
                        :method-not-allowed
                        (constantly (error-page {:status 405, :title "405 - Not allowed"}))
                        :not-acceptable

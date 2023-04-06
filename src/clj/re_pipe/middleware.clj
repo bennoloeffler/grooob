@@ -7,10 +7,19 @@
     [re-pipe.middleware.formats :as formats]
     [muuntaja.middleware :refer [wrap-format wrap-params]]
     [re-pipe.config :refer [env]]
+    [ring.middleware.oauth2 :refer [wrap-oauth2]]
     [ring.middleware.flash :refer [wrap-flash]]
     [ring.adapter.undertow.middleware.session :refer [wrap-session]]
-    [ring.middleware.defaults :refer [site-defaults wrap-defaults]])
-  )
+    [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
+    [puget.printer :refer [cprint]]
+    [re-pipe.google-login :as google]))
+
+
+
+
+
+
+
 
 (defn wrap-internal-error [handler]
   (fn [req]
@@ -38,12 +47,23 @@
       ;; since they're not compatible with this middleware
       ((if (:websocket? request) handler wrapped) request))))
 
+;; middleware which prints the request
+(defn wrap-print-request [handler]
+  (fn [request]
+    (cprint request)
+    (handler request)))
+
+
 (defn wrap-base [handler]
   (-> ((:middleware defaults) handler)
+      ;wrap-print-request
       wrap-flash
+      (wrap-oauth2 (google/oauth-config))
       (wrap-session {:cookie-attrs {:http-only true}})
+
       (wrap-defaults
         (-> site-defaults
             (assoc-in [:security :anti-forgery] false)
+            (assoc-in [:session :cookie-attrs :same-site] :lax) ;; in order to make wrap-oauth2 work.
             (dissoc :session)))
       wrap-internal-error))

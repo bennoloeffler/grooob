@@ -7,7 +7,10 @@
    [expound.alpha :as expound]
    [mount.core :as mount]
    [clojure.tools.logging :as log]
-   [re-pipe.core :refer [start-app]]))
+   [re-pipe.core :refer [start-app]]
+   [clojure.tools.namespace.repl :refer (refresh refresh-all clear)]
+   [belib.core :as b]))
+
 
 (alter-var-root #'s/*explain-out* (constantly expound/printer))
 
@@ -30,5 +33,19 @@
   []
   (stop)
   (start))
+
+(defn reset []
+  (stop)
+  (refresh :after 'user/start))
+
+(defn rf []
+  (clojure.tools.namespace.repl/set-refresh-dirs
+    "src/clj" "test/clj"
+    "checkouts/belib/src" "checkouts/belib/test")
+  (refresh-all))
+
+(defn t []
+  (b/test-belib))
+
 
 
