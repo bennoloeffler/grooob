@@ -38,14 +38,22 @@
   (stop)
   (refresh :after 'user/start))
 
-(defn rf []
+(defn rfa
+  "refresh all"
+  []
   (clojure.tools.namespace.repl/set-refresh-dirs
-    "src/clj" "test/clj"
-    "checkouts/belib/src" "checkouts/belib/test")
+    "src/clj" "env/dev/clj")
   (refresh-all))
 
 (defn t []
   (b/test-belib))
 
+(comment
+  (println (t))
+  (rfa))
+
+(comment
+  ; https://stackoverflow.com/questions/15995350/display-loaded-dependencies-in-leiningen-repl
+  (clojure.string/split (System/getProperty "java.class.path") #":"))
 
 

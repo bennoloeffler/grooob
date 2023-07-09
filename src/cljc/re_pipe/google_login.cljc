@@ -42,6 +42,7 @@
       (db/check-user-google email)))
 
 
+; see my login information
 
 (defn oauth-config []
   {:google
@@ -54,14 +55,3 @@
     :redirect-uri     "/oauth/google/callback"
     :landing-uri      "/oauth/google/done"}})
 
-
-
-;; data DOWNLOADED from google. DONT CHECK IN!
-{:google {:client-id                   "607397261019-4fkbc25chgnohnlddjjql3l4vf7bu5vf.apps.googleusercontent.com"
-          :project-id                  "grooob"
-          :auth-uri                    "https://accounts.google.com/o/oauth2/auth"
-          :token-uri                   "https://oauth2.googleapis.com/token"
-          :auth-provider-x509-cert-url "https://www.googleapis.com/oauth2/v1/certs"
-          :client-secret               "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"
-          :redirect-uris               ["http://localhost:3000/oauth/google/callback"]
-          :javascript-origins          ["http://localhost:3000"]}}

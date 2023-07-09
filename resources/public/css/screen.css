@@ -7958,6 +7958,14 @@ a.has-text-danger-dark:hover, a.has-text-danger-dark:focus {
   background-size: cover;
   height: 900px; }
 
+.is-blue {
+  font-size: 40px;
+  color: blue; }
+
+.is-red {
+  color: red;
+  font-size: 35px; }
+
 .is-white {
   color: white; }
 

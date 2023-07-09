@@ -44,10 +44,7 @@
   (fn [db [_ error]]
     (assoc db :common/error error)))
 
-(rf/reg-event-fx
-  :page/init-home
-  (fn [_ _]
-    {} #_{:dispatch [:fetch-docs]}))
+
 
 ;; Define a co-effect to get the current time
 (rf/reg-cofx
@@ -288,7 +285,20 @@
     (:user db)))
 
 
+
+
 (defn from-events []
   {:from :events})
+
+(rf/reg-event-db
+  :add-id
+  (fn [db [_ id]]
+    (assoc-in db [:ids id] true)))
+
+(rf/reg-event-db
+  :remove-id
+  (fn [db [_ id]]
+    (println "REMOVE")
+    (update-in db [:ids] dissoc id)))
 
 

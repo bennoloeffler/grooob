@@ -5,24 +5,63 @@
     [reagent.core :as r]
     [re-frame.core :as rf]
     [goog.events :as events]
-    [goog.history.EventType :as HistoryEventType]
     [markdown.core :refer [md->html]]
     [re-pipe.ajax :as ajax]
     [re-pipe.experiments :as ex]
     [re-pipe.events]
+    [re-pipe.model :as model]
     [reitit.core :as reitit]
     [reitit.frontend.easy :as rfe]
     [clojure.string :as string]
+    [belib.hiccup :as bh]
+    [re-pipe.events-timeout]
+    [re-pipe.project-ui :as ui])
 
-    [re-pipe.events-timeout])
+  (:import goog.History
+           [goog.events EventType KeyHandler]))
 
-  (:import goog.History))
+(println (model/now-date-time))
 
 ; https://ericnormand.me/guide/re-frame-building-blocks
 ; postgres notifications: reactive... https://yogthos.net/posts/2016-11-05-LuminusPostgresNotifications.html
 ; local state & laggy input: https://github.com/day8/re-frame/blob/master/docs/FAQs/laggy-input.md
 ; components: re-com
 
+(defn change-once-after
+  "Returns a reagent/atom with value before.
+  Changes it once after time to
+  value then.
+  Example:
+  (defn login-with-google-button-1 []
+    (let [bounce-off (change-once-after 3000 \"fa-bounce\" nil)]
+      (fn []
+        [:span.icon.is-large>i
+          (bh/cs @bounce-off \"fas fa-lg fa-brands fa-google\")])))"
+  [time before then]
+  (let [to-change (r/atom before)]
+    (js/setTimeout #(reset! to-change then) time)
+    to-change))
+
+(defn change-continuously
+  "returns a reagent/atom and changes it every
+  intervall milliseconds to the next value
+  in the collection coll."
+  [intervall coll]
+  (let [idx       (atom 0)
+        to-change (r/atom (get coll @idx))]
+    (letfn [(change-it []
+              (swap! idx inc)
+              (when (< @idx (count coll))
+                (reset! to-change (get coll @idx))
+                (js/setTimeout change-it intervall)))]
+      (js/setTimeout change-it intervall)
+      to-change)))
+
+(defn fa-smaller []
+  (change-continuously 35 ["fa-10x" "fa-9x" "fa-8x" "fa-7x" "fa-6x" "fa-5x" "fa-4x" "fa-3x" "fa-2x" "fa-1x" "fa-sm" "fa-xs" "fa-2xs" "fa-2xs" "fa-xs" "fa-sm" "fa-1x" "fa-lg"]))
+
+(defn fa-bounce-off []
+  (change-once-after 3000 "fa-bounce" nil))
 
 (defn input-field
   "Assoc data-atom key value-of-input at every key stroke."
@@ -33,20 +72,22 @@
                   (swap! data-atom assoc key val))}])
 
 
-
 (defn register-button []
-  [:a.button.is-light.is-outlined.mr-1.is-fullwidth
-   {:href "#/register"}
-   [:span.icon.is-large>i.fas.fa-1x.fa-pen-nib]
-   [:span "create free account"]])
+  (let [smaller (fa-smaller)]
+    (fn []
+      [:a.button.is-light.is-outlined.mr-1.is-fullwidth
+       {:href "#/register"}
+       [:span.icon.is-large>i (bh/cs @smaller "fas fa-pen-nib")]
+       [:span "create free account"]])))
 
 
 (defn login-with-google-button []
-  [:a.button.is-light.is-outlined.mr-1.is-fullwidth
-   {:href "/login-with-google"}
-   ;:on-click #(rf/dispatch [:user/login-with-google])}
-   [:span.icon.is-large>i.fas.fa-1x.fa-brands.fa-bounce.fa-google]
-   [:span "login with google account"]])
+  (let [bounce-off (fa-bounce-off)]
+    (fn []
+      [:a.button.is-light.is-outlined.mr-1.is-fullwidth
+       {:href "/login-with-google"}
+       [:span.icon.is-large>i (bh/cs @bounce-off "fas fa-lg fa-brands fa-google")]
+       [:span "login with google account"]])))
 
 ; https://lambdaisland.com/episodes/passwordless-authentication-ring-oauth2
 
@@ -184,16 +225,18 @@
     (fn []
       [:span "user: " [:strong (:identity @user)]])))
 
+
 (defn home-page []
   (let [user-data (rf/subscribe [:user])]
     (fn []
       [:<>
-        [:div
-          [:h1.title "grooob.com"]
-          [:h4.subtitle "capacity planning without distracting details"]]
-        (if @user-data
-          [user]
-          [login-form])])))
+        [ui/logged-in-form]
+        #_[:div
+            [:h1.title "grooob.com"]
+            [:h4.subtitle "capacity planning without distracting details"]]
+        #_(if @user-data
+            [ui/logged-in-form]
+            [login-form])])))
 
 (defn home-page-from-google []
       [:<>
@@ -236,7 +279,7 @@
   (reitit/router
     [["/" {:name        :home
            :view        #'home-page
-           :controllers [{:start (fn [_] (rf/dispatch [:page/init-home]))}]}]
+           :controllers [{:start (fn [_] (rf/dispatch [:view/init]))}]}]
      ["/about" {:name :about
                 :view #'about-page}]
      ["/logout" {:name :logout
@@ -248,7 +291,9 @@
 
      ["/google-login" {:name        :google-login
                        :view        #'home-page-from-google
-                       :controllers [{:start (fn [req] (rf/dispatch [:login-google req]))}]}]]))
+                       :controllers [{:start (fn [req]
+                                               (rf/dispatch [:login-google req])
+                                               (rf/dispatch [:view/init]))}]}]]))
 
 (defn start-router! []
   (rfe/start!
@@ -259,7 +304,7 @@
 
 (defn do-strange []
   (println "something strange" (re-pipe.events/from-events)))
-  
+
 (comment ; this can be done by repl...
   (println "switch to console to view this"))
 
@@ -273,8 +318,6 @@
   (.getElementById js/document "app")
   (rdom/render "oha... reload please :-)" (.getElementById js/document "app")))
 
-; TODO: view reframe db... change it...
-
 
 
 ;; -------------------------
@@ -286,10 +329,12 @@
 (defn init! []
   (start-router!)
   (ajax/load-interceptors!)
-  (mount-components))
+  (mount-components)
+  (ui/register-key-handler))
 
 
-
+(comment
+  (shadow/repl :app))
 
 
 
@@ -317,27 +362,6 @@
 #_(defn handle-event [event] ;an event object is passed to all events
     (println (str "BELs event: " event)))
 
-#_(defn capture-key
-    "Given a `keycode`, execute function `f` "
-    ; see https://github.com/reagent-project/historian/blob/master/src/cljs/historian/keys.cljs
-    [keycode-map]
-    (let [key-handler (KeyHandler. js/document)
-          press-fn (fn [key-press]
-                     (println key-press)
-                     (if-let [f (get keycode-map (.. key-press -keyCode))]
-                       (f)
-                       (println (.. key-press -keyCode))))]
-      (println "register listeners")
-      (gev/listen key-handler
-                  EventType.KEYDOWN #_(-> KeyHandler .-EventType .-KEY)
-                  press-fn)))
-
-
-#_(defn reagent-content-fn []
-      ;; sets up the event listener
-      (capture-key {keycodes/ENTER #(println "Luna Lovegood")
-                    keycodes/K #(swap! state update :shift dec)
-                    keycodes/L #(swap! state update :shift inc)}))
 
 #_(defn nav-link [uri title page]
     [:a.navbar-item
@@ -437,7 +461,7 @@
     (reitit/router
       [["/" {:name        :home
              :view        #'home-page
-             :controllers [{:start (fn [_] (rf/dispatch [:page/init-home]))}]}]
+             :controllers [{:start (fn [_] (rf/dispatch [:view/init]))}]}]
        ["/about" {:name :about
                   :view #'about-page}]]))
 
@@ -457,4 +481,4 @@
     (start-router!)
     (ajax/load-interceptors!)
     (mount-components)
-    #_(reagent-content-fn))
+    #_(register-key-handler))

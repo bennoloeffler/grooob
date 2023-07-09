@@ -5,7 +5,7 @@
 
   :dependencies [[ch.qos.logback/logback-classic "1.2.10"]
                  [cljs-ajax "0.8.4"]
-                 [clojure.java-time "0.3.3"]
+                 ;[clojure.java-time "0.3.3"]
                  [com.cognitect/transit-clj "1.0.329"]
                  [com.cognitect/transit-cljs "0.8.269"]
                  [cprop "0.1.19"]
@@ -46,9 +46,17 @@
                  [com.hyperfiddle/rcf "20220405"]
                  [buddy "2.0.0"]
                  [ring-oauth2 "0.2.0"]
-                 [clj-http "3.12.3"]]
+                 [clj-http "3.12.3"]
 
-                 ;[belib "0.1.0-SNAPSHOT"]]
+                 [belib "0.1.0-SNAPSHOT"]
+                 [clojure.java-time "1.2.0"]
+                 [io.github.erdos/erdos.assert "0.2.3"]
+                 [djblue/portal "0.37.1"]
+                 [metosin/malli "0.11.0"]
+
+                 [tick "0.6.2"]
+                 [net.cgrand/macrovich "0.2.1"]]
+
 
 
 
@@ -81,12 +89,15 @@
    :dev           [:project/dev :profiles/dev]
    :test          [:project/dev :project/test :profiles/test]
 
-   :project/dev  {:jvm-opts ["-Dconf=dev-config.edn"]
+   :project/dev  {:jvm-opts ["-Dconf=dev-config.edn"
+                             "-Djdk.attach.allowAttachSelf"]
                   :dependencies [[binaryage/devtools "1.0.4"]
                                  [cider/piggieback "0.5.3"]
                                  [org.clojure/tools.namespace "1.2.0"]
                                  [pjstadig/humane-test-output "0.11.0"]
                                  [prone "2021-04-23"]
+                                 [com.clojure-goes-fast/clj-async-profiler "1.0.3"]
+
                                  [re-frisk "1.5.2"]
                                  [ring/ring-devel "1.9.5"]
                                  [ring/ring-mock "0.4.0"]]

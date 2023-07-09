@@ -6,6 +6,12 @@
 ; could that all be done with
 ; :dispatch-later
 ; see: https://day8.github.io/re-frame/api-builtin-effects/#dispatch-later
+(rf/reg-event-fx
+  :set-timeout
+  (fn [cfx [_ params]]
+    (println "e: " (:event params))
+    (println "ps: " params)
+    {:fx [[:dispatch-later {:ms (:time params) :dispatch (:event params)}]]}))
 
 (defonce timeouts (r/atom {}))
 

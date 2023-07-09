@@ -1,13 +1,18 @@
 (ns re-pipe.core
   (:require
+    [re-pipe.model :as model]
     [re-pipe.handler :as handler]
     [re-pipe.nrepl :as nrepl]
     [luminus.http-server :as http]
     [re-pipe.config :refer [env]]
     [clojure.tools.cli :refer [parse-opts]]
     [clojure.tools.logging :as log]
-    [mount.core :as mount])
+    [mount.core :as mount]
+    [belib.cal-week-year :as bc])
   (:gen-class))
+
+(println (model/now-date-time))
+(println (bc/get-abs-current-week))
 
 ;; log uncaught exceptions in threads
 (Thread/setDefaultUncaughtExceptionHandler

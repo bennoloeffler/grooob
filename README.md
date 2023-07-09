@@ -1,14 +1,48 @@
 # grooob.com
 
 ## Vision
+
 Planning as rough as possible.
 Less Details. Less data. Less time.
 Together simultaneously as Team.
 View everything in Realtime.
 
-## TODOs / Features / Releases
+## BUGs
+
+- fix: login success:  {:identity nil}
+- fix: only one way with proper error message: google user may override normal login
+
+## TODOs, next steps
+
+- create rand-project function
+  that creates a model with 3 random tasks around "today"
+- on init: create a model with 3 projects and 3 tasks each
+- send an example model to server and save it to data-hike
+
+## Features / Releases
+
+V0.1.0
+
+- remove size from db
+- remove offest-cw and pr
+- read ONE data file
+    - Projekt-Start-End-Abt-Kapa.txt
+    - project-start-end-dep-capa.txt
+- change model in db
+- save data file
+
+- scroll with the cross-cursor moving
+- details view as tool-tip
+- absolute time 2023-01 visible
+- projects names visible
+- project detail view in a second window
+- right click menu --> open project details-
+- open several windows? Popups or several windows that are connected by data model?
+- save data in localstore
+- View:
+  Pipeline Details
+  Load
 - save auth token in browser?
-- flash?
 - checkbox for terms and conditions
 - validation locally with local error messages
 - page for terms and conditions
@@ -30,15 +64,16 @@ View everything in Realtime.
 - resend password
 
 ## technical decisions
-- clojure
-- server with datahike
-- Client: re-frame
-- model, logic and spec in cljc in order to use at client and server
-- EITHER: drawing in a canvas: reactive client with some rx-tool
-- OR: drawing svg in re-frame
 
+- web app, SPA
+- clojure / clojurescript
+- server with datahike
+- client: re-frame
+- model, logic and spec in cljc in order to use at client and server
+- project view: drawing svg in re-frame
 
 ## development mode
+
 ```
 npm i react
 npm i react-dom
@@ -48,6 +83,7 @@ npm install bulma --save-dev
 ```
 
 package.json should look like this
+
 ```
 {
   "devDependencies": {
@@ -70,16 +106,19 @@ package.json should look like this
 ## Running
 
 watch and compile sass
+
 ```
 npm run start
 ```
 
 watch and compile shadow-cljs
+
 ```
 shadow-cljs watch app
 ```
 
 run server in repl
+
 ```
 (start)
 (stop)
@@ -87,11 +126,26 @@ run server in repl
 ```
 
 run client in browser
+
 ```
 localhost:3000
 ```
 
-connect vscode/calva to cljs repl in browser
+connect **intellij cursive** to shadow-cljs repl  
+https://gist.github.com/akovantsev/44e2a0e10908785d1f40d3d3bcfff574
+
+```
+1 terminal: $ shadow-cljs watch app  
+2 Run -> Edit Configurations... -> + -> Clojure REPL -> Remote
+3 name it cljs-browser-repl
+4 nRepl
+5 use file: .shadow-cljs/nrepl.port
+6 run it
+7 call (shadow/repl :app)
+```
+
+connect **vscode/calva** to cljs repl in browser
+
 ```
 click the repl symbol in the status line. Then choose:
 1 connect to a running repl in your project
@@ -100,15 +154,18 @@ click the repl symbol in the status line. Then choose:
 ```
 
 test api in swagger
+
 ```
 localhost:3000/swagger-ui
 ```
 
 ## google oath2 login
 
-1. I decided to go with reitit-oauth2, based on https://lambdaisland.com/episodes/passwordless-authentication-ring-oauth2
+1. I decided to go with reitit-oauth2, based
+   on https://lambdaisland.com/episodes/passwordless-authentication-ring-oauth2
 1. I got the data from google
 2. thought about the endpoints in my app
+
 ```
 (defn oauth-config []
   {:google
@@ -123,6 +180,7 @@ localhost:3000/swagger-ui
 ```
 
 4. so the middleware on the serverside needs to be changed.
+
 ```
 (ns re-pipe.middleware
   (:require
@@ -200,7 +258,7 @@ localhost:3000/swagger-ui
 
 ```
 
-5. this button starts the process by triggering /login-with-google and this starts google login with the middleware 
+5. this button starts the process by triggering /login-with-google and this starts google login with the middleware
 
 ```
 (defn login-with-google-button []
@@ -209,7 +267,9 @@ localhost:3000/swagger-ui
    [:span.icon.is-large>i (cs "fas" "fa-1x" "fa-brands" "fa-google")]
    [:span "login with google"]])
 ```
+
 6. this is the router on server side
+
 ```
 (defn home-routes []
   [""
@@ -221,10 +281,12 @@ localhost:3000/swagger-ui
                     (-> (response/ok (-> "docs/docs.md" io/resource slurp))
                         (response/header "Content-Type" "text/plain; charset=utf-8")))}]])
 ```
+
 7. the session is changed, after the router get's /oauth/google/done  
-Until here, everything works fine
-The redirect points to a client route...  
-***TODO remember the user/token***
+   Until here, everything works fine
+   The redirect points to a client route...  
+   ***TODO remember the user/token***
+
 ```
 (defn callback-from-google-login []
   (fn [req]
@@ -236,7 +298,9 @@ The redirect points to a client route...
       (-> (redirect "/#/google-login") ; not home, to set user right...
           (assoc :session next-session)))))
 ```
+
 8. here is the route
+
 ```
 (def router
   (reitit/router
@@ -257,7 +321,9 @@ The redirect points to a client route...
                        :controllers [{:start (fn [req] (rf/dispatch [:login-google req]))}]}]]))
 
 ```
+
 9. there is a page #'home-page-from-google
+
 ```
 (defn home-page-from-google []
       [:<>
@@ -265,7 +331,9 @@ The redirect points to a client route...
        [:br][:br]
        [home-page]])
 ```
-10. the controller from 8. triggers (rf/dispatch [:login-google req] 
+
+10. the controller from 8. triggers (rf/dispatch [:login-google req]
+
 ```
 (rf/reg-event-fx
   :login-google
@@ -279,9 +347,11 @@ The redirect points to a client route...
                   :on-failure      [:login-failure]}}))
 
 ```
+
 11. the code behind the api looks like this  
-it just gives back the :identity  
-***TODO check the user/token***
+    it just gives back the :identity  
+    ***TODO check the user/token***
+
 ```
    ["/login-google"
     {:post {:summary    "user authentictes with :session :identity"
@@ -299,6 +369,7 @@ it just gives back the :identity
 ```
 
 12. and in the server, I use that Identity
+
 ```
 (rf/reg-event-db
   :login-success

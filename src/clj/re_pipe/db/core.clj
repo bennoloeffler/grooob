@@ -15,7 +15,7 @@
            [java.util UUID]))
 
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 (defn read-resource
   "Reads and returns data from a resource containing edn text. An
@@ -386,7 +386,7 @@
 ; login user
 
 (comment
-  (b/test-belib))
+  (println (b/test-belib)))
 (tests
   (when (conn-running?) (stop-conn))
   (start-conn)
