@@ -21,6 +21,17 @@
   (let [cursor (.getElementById js/document "cursor")]
     (.scrollIntoView cursor (clj->js {:behavior "smooth", :block "nearest", :inline "nearest"}))))
 
+(defn get-svg-x-offset []
+  (let [svg-offset-x 0
+        div          (.getElementById js/document "divContainer")
+        svg          (.getElementById js/document "svgElement")
+        body         (.-body js/document)
+        bcr-svg      (if svg (.getBoundingClientRect svg) svg-offset-x)
+        bcr-div      (if div (.getBoundingClientRect div) svg-offset-x)
+        svg-offset-x (- (.-x bcr-div) (.-x bcr-svg))
+        svg-offset-x (if (js/isNaN svg-offset-x) 0 svg-offset-x)]
+    svg-offset-x))
+
 
 ; the portfolio-view consists of a grid of calendar-weeks and projects
 ;      0   1  2  3  4
@@ -74,8 +85,8 @@
                  :y            (* g y)
                  :width        g
                  :height       g
-                 :stroke       "blue"
-                 :stroke-width 2
+                 :stroke       "black"
+                 :stroke-width 5
                  :fill         "white"
                  :fill-opacity 0.2}]
          [:rect#cursor {:x            (- (* g x) g)
@@ -101,20 +112,35 @@
                 :fill-opacity 0.1}]))))
 
 (defn project []
-  (let [grid (rf/subscribe [:view/grid])]
-    (fn [row start-cw len-cw]
+  (let [grid           (rf/subscribe [:view/grid])
+        browser-scroll (rf/subscribe [:view/browser-scroll])]
+    (fn [row start-cw len-cw project-id]
       (let [gx (* start-cw @grid)
             gy (* row @grid)]
-        (vec (cons :<> (map (fn [cw] [square (+ gx (* cw @grid)) gy]) (range len-cw))))))))
+        (vec (cons :<> (conj (vec (map (fn [cw] [square (+ gx (* cw @grid)) gy])
+                                       (range len-cw)))
+                             [:text {:x                 (+ 11 (get-svg-x-offset))
+                                     :y                 (+ (/ @grid 2) gy)
+                                     :fill              "black"
+                                     :font-weight       "bold"
+                                     :dominant-baseline "middle"
+                                     :font-size         (* 0.9 @grid)
+                                     :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
+                              (str project-id)])))))))
 
+#_[:text {:x    10
+          :y    gy
+          :fill "blue"}
+   (str 123)]
 
 
 (defn projects []
   (let [model (rf/subscribe [:model/model])]
     (fn []
       (let [start-cw      (:min-cw @model)
-            projects-html (vec (cons :<> (map-indexed (fn [idx [id start weeks]] [project idx (- start start-cw) weeks])
-                                                      (:projects @model))))]
+            projects-html (vec (cons :<> (map (fn [[idx start weeks project-id]]
+                                                [project idx (- start start-cw) weeks project-id])
+                                              (:projects @model))))]
         ;(pprint start-cw)
         ;(pprint projects-html)
         projects-html))))
@@ -156,6 +182,7 @@
                    pairs
                    (range 20 1000 30)))))
 
+
 (defn grid+cross []
   (let [;size (rf/subscribe [:view/size])
         browser-size   (rf/subscribe [:view/browser-size])
@@ -189,7 +216,7 @@
 
             svg-offset-x   (- (.-x bcr-div) (.-x bcr-svg))
             svg-offset-y   (- (.-y bcr-div) (.-y bcr-svg)) #_(.-scrollTop (.-documentElement js/document)) #_(- (.-y bcr-body) (.-y bcr-svg))
-            svg-offset-x   (if (js/isNaN svg-offset-x) 0 svg-offset-x)
+            svg-offset-x   (get-svg-x-offset) #_(if (js/isNaN svg-offset-x) 0 svg-offset-x)
             svg-offset-y   (if (js/isNaN svg-offset-y) 0 svg-offset-y)
             div-offset-y   (.-y bcr-div)
             dist-div-top   (+ div-offset-y doc-offset)
@@ -221,17 +248,17 @@
                 :width  x-px #_"100vw"
                 :height y-px #_"100vh"}
           ;:onLoad     #(println "load svg")}
-          [projects]
           [cross]
+          [projects]
           [:circle {:cx 0 :cy 0 :r 5 :fill "red"}]
           (t svg-offset-x (+ doc-offset)
              ;"grid" @grid
              ;"cross" @cross-data
-             "cross-visible" (cross-visible @cross-data
-                                            (quot svg-offset-x @grid)
-                                            (quot (- doc-offset dist-div-top) @grid)
-                                            div-vis-width
-                                            div-vis-height)
+             #_"cross-visible" #_(cross-visible @cross-data
+                                                (quot svg-offset-x @grid)
+                                                (quot (- doc-offset dist-div-top) @grid)
+                                                div-vis-width
+                                                div-vis-height)
              ;"div-offset-y" (quot div-offset-y @grid)
              ;"svg-offset-x" (quot svg-offset-x @grid)
              ;"svg-offset-y" (quot svg-offset-y @grid)
@@ -240,7 +267,7 @@
              ;"dist-div-top" (quot dist-div-top @grid)
              ;"doc-offset" (quot doc-offset @grid)
 
-             "browser-scroll - just for update: " @browser-scroll)
+             #_"browser-scroll - just for update: " #_@browser-scroll)
 
           #_[:text {:x (+ svg-offset-x 100) :y (+ svg-offset-y 20) :fill "black " :stroke "black"}
              (str "grid: " @grid)]
@@ -415,7 +442,7 @@
     (fn dispatch-browser-scroll [event]
       ;(cljs.pprint/pprint (b/js-obj->clj-map event))
       (rf/dispatch [:view/browser-scroll]))
-    200))
+    400))
 
 (defn scroll-fn [event]
   ;(println "scroll" event)

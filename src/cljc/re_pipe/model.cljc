@@ -519,7 +519,7 @@
     (let [tasks   (keys (get-in m [:g/projects project-id :g/tasks]))
           m-moved (reduce (fn [acc val] (move-task acc project-id val days)) m tasks)]
 
-      (pprint (view-model m-moved))
+      ;(pprint (view-model m-moved))
       m-moved)))
 
 (comment
@@ -633,8 +633,8 @@
                               first)
                :projects (map-indexed (fn [i e] (let [start (-> e first first)
                                                       end   (first (second e))]
-                                                  [i start (- end start)]))
-                                      (map :g/start-end-project-cw
+                                                  [i start (- end start) (last e)]))
+                                      (map #(conj (vec (:g/start-end-project-cw %)) (:g/entity-id %))
                                            (vals (:g/projects model))))}]
     ;(pprint model)
     model))
@@ -683,8 +683,8 @@
 
   (map-indexed (fn [i e] (let [start (-> e first first)
                                end   (first (second e))]
-                           [i start (- end start)]))
-               (map :g/start-end-project-cw
+                           [i start (- end start) (last e)]))
+               (map #(conj (vec (:g/start-end-project-cw %)) (:g/entity-id %))
                     (vals (:g/projects m-big)))))
 
 (tests
@@ -703,8 +703,8 @@
                                   "engineering"
                                   200)))) := {:min-cw   696
                                               :max-cw   700
-                                              :projects [[0 696 4]
-                                                         [1 696 4]]}
+                                              :projects [[0 696 4 "new-proj-1"]
+                                                         [1 696 4 "new-proj-2"]]}
 
   nil)
 ;:g/projects
