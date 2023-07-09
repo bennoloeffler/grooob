@@ -12,7 +12,7 @@
 
     [hyperfiddle.rcf :refer [tests]])
   #_(:import [java.time LocalDate]
-             [java.time Period]))
+      [java.time Period]))
 
 
 (hyperfiddle.rcf/enable! true)
@@ -149,8 +149,8 @@
     (:g/end task)))
 
 (defn shorter-than-5-years? [task]
-  (< (bd/duration-in-days  (:g/start task)
-                           (:g/end task)) (* 5 365)))
+  (< (bd/duration-in-days (:g/start task)
+                          (:g/end task)) (* 5 365)))
 
 (s/def :g/task (s/and
                  (s/keys :req [:g/entity-id
@@ -210,7 +210,7 @@
 ;;----------------
 ;; projects - spec
 ;;-----------------
-(def projects-ids-range (vec (map str (range 100 200))))
+(def projects-ids-range (vec (map str (range 100 150))))
 (def projects-ids-set (set projects-ids-range))
 (defn get-rand-project-id [] (rand-nth projects-ids-range))
 

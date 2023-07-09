@@ -52,7 +52,9 @@
   (let [cross (rf/subscribe [:view/cross])
         model (rf/subscribe [:model/model])]
     (fn []
-      [:pre (str @cross ", min-max-cw: " (:min-cw @model) ", " (:max-cw @model) ", now: " (bc/get-abs-current-week))])))
+
+      (let [now (bc/week-year-from-abs-week (+ (:min-cw @model) (:cw @cross)))]
+        [:pre (str now ", " @cross ", min-max-cw: " (:min-cw @model) ", " (:max-cw @model) ", now: " (bc/get-abs-current-week))]))))
 
 (defn cross []
   (let [cross (rf/subscribe [:view/cross])
@@ -182,6 +184,49 @@
                    pairs
                    (range 20 1000 30)))))
 
+(defn weeks-from-abs-weeks [start-week num-weeks]
+  (vec (map (fn [e] (bc/week-year-from-abs-week (+ start-week e 1)))
+            (range num-weeks))))
+
+(defn weeks-indicators [all-year-weeks]
+  (map #(str (first %) "-" (second %)) all-year-weeks))
+
+(comment
+  (weeks-from-abs-weeks 100 10)
+  (weeks-indicators (weeks-from-abs-weeks 100 10)))
+
+(defn week [indicator cw g y]
+  [:text {:x                 (+ (* cw g) (/ g 2))
+          :y                 (+ y g)
+          :fill              "black"
+          :font-weight       "bold"
+          :dominant-baseline "middle"
+          :font-size         (* 0.9 g)
+          :writing-mode      "tb"}
+
+   (str indicator)])
+
+(defn weeks []
+  (let [grid  (rf/subscribe [:view/grid])
+        model (rf/subscribe [:model/model])]
+    (fn []
+      (let [m @model
+            g @grid
+            x (- (:max-cw m) (:min-cw m))
+            p (:projects m)
+            i (weeks-indicators (weeks-from-abs-weeks (:min-cw m) x))
+            y (* g (count p))]
+        (vec (cons :<> (vec (map-indexed (fn [idx e] [week e idx g y]) i))))
+        #_(vec (cons :<> (conj (vec (map (fn [cw] [square (+ gx (* cw @grid)) gy])
+                                         (range len-cw)))
+                               [:text {:x                 (+ 11 (get-svg-x-offset))
+                                       :y                 (+ (/ @grid 2) gy)
+                                       :fill              "black"
+                                       :font-weight       "bold"
+                                       :dominant-baseline "middle"
+                                       :font-size         (* 0.9 @grid)
+                                       :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
+                                (str project-id)])))))))
 
 (defn grid+cross []
   (let [;size (rf/subscribe [:view/size])
@@ -221,7 +266,7 @@
             div-offset-y   (.-y bcr-div)
             dist-div-top   (+ div-offset-y doc-offset)
             x-px           (* @grid (- (:max-cw @m) (:min-cw @m)) #_"100vw")
-            y-px           (* @grid (count (:projects @m) #_"100vh"))
+            y-px           (* @grid (+ (count (:projects @m)) 5 #_"100vh")) ; 5 grids for
             xy-ratio       (/ x-px y-px)
             cx             (* @grid (:cw @cross-data))
             cy             (* @grid (:project @cross-data))
@@ -250,6 +295,7 @@
           ;:onLoad     #(println "load svg")}
           [cross]
           [projects]
+          [weeks]
           [:circle {:cx 0 :cy 0 :r 5 :fill "red"}]
           (t svg-offset-x (+ doc-offset)
              ;"grid" @grid
@@ -816,24 +862,25 @@
 (def d t/date)
 
 (defn create-model []
-  (-> (model/new-model "a-model")
-      (model/add-resource "engineering" 20 40)
-      (model/add-pipeline "pip-25" 25)
-      (model/add-project "new-proj-0" nil "pip-25")
-      (model/add-project "new-proj-1" nil "pip-25")
-      (model/add-project "new-proj-2" nil "pip-25")
-      (model/add-task "new-proj-0" (model/t (d "2020-01-07")
-                                            (d "2020-06-01")
-                                            "engineering"
-                                            200))
-      (model/add-task "new-proj-1" (model/t (d "2023-05-07")
-                                            (d "2023-06-01")
-                                            "engineering"
-                                            200))
-      (model/add-task "new-proj-2" (model/t (d "2024-05-07")
-                                            (d "2024-06-18")
-                                            "engineering"
-                                            200))))
+  (model/generate-random-model 240)
+  #_(-> (model/new-model "a-model")
+        (model/add-resource "engineering" 20 40)
+        (model/add-pipeline "pip-25" 25)
+        (model/add-project "new-proj-0" nil "pip-25")
+        (model/add-project "new-proj-1" nil "pip-25")
+        (model/add-project "new-proj-2" nil "pip-25")
+        (model/add-task "new-proj-0" (model/t (d "2020-01-07")
+                                              (d "2020-06-01")
+                                              "engineering"
+                                              200))
+        (model/add-task "new-proj-1" (model/t (d "2023-05-07")
+                                              (d "2023-06-01")
+                                              "engineering"
+                                              200))
+        (model/add-task "new-proj-2" (model/t (d "2024-05-07")
+                                              (d "2024-06-18")
+                                              "engineering"
+                                              200))))
 
 
 (comment
