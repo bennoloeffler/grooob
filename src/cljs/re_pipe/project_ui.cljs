@@ -56,9 +56,84 @@
       (let [now (bc/week-year-from-abs-week (+ (:min-cw @model) (:cw @cross)))]
         [:pre (str now ", " @cross ", min-max-cw: " (:min-cw @model) ", " (:max-cw @model) ", now: " (bc/get-abs-current-week))]))))
 
+
+(defn weeks-from-abs-weeks [start-week num-weeks]
+  (vec (map (fn [e] (bc/week-year-from-abs-week (+ start-week e 1)))
+            (range num-weeks))))
+
+(defn weeks-indicators [all-year-weeks]
+  (map #(str (first %) "-" (second %)) all-year-weeks))
+
+(comment
+  (weeks-from-abs-weeks 100 10)
+  (weeks-indicators (weeks-from-abs-weeks 100 10)))
+
+(defn week [indicator cw g y]
+  [:text {:x                 (+ (* cw g) (/ g 2))
+          :y                 (+ y g)
+          :fill              "black"
+          :font-weight       "bold"
+          :dominant-baseline "middle"
+          :font-size         (* 0.9 g)
+          :writing-mode      "tb"}
+
+   (str indicator)])
+
+(defn weeks []
+  (let [grid  (rf/subscribe [:view/grid])
+        model (rf/subscribe [:model/model])]
+    (fn []
+      (let [m @model
+            g @grid
+            x (- (:max-cw m) (:min-cw m))
+            p (:projects m)
+            i (weeks-indicators (weeks-from-abs-weeks (:min-cw m) x))
+            y (* g (count p))]
+        (vec (cons :<> (vec (map-indexed (fn [idx e] [week e idx g y]) i))))
+        #_(vec (cons :<> (conj (vec (map (fn [cw] [square (+ gx (* cw @grid)) gy])
+                                         (range len-cw)))
+                               [:text {:x                 (+ 11 (get-svg-x-offset))
+                                       :y                 (+ (/ @grid 2) gy)
+                                       :fill              "black"
+                                       :font-weight       "bold"
+                                       :dominant-baseline "middle"
+                                       :font-size         (* 0.9 @grid)
+                                       :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
+                                (str project-id)])))))))
+
+
+(defn cursor []
+  (let [cross (rf/subscribe [:view/cross])
+        model (rf/subscribe [:model/model])
+        grid  (rf/subscribe [:view/grid])]
+    (fn []
+
+      (let [g           @grid
+            c           @cross
+            x           (:cw c)
+            y           (:project c)
+            cursor-week (bc/week-year-from-abs-week (+ x 1 (:min-cw @model)))]
+
+        [:<>
+         [:rect {:x            (* g x)
+                 :y            (* g y)
+                 :width        g
+                 :height       g
+                 :stroke       "black"
+                 :stroke-width 2
+                 :fill         "white"
+                 :fill-opacity 0.2}]
+         [week (first (weeks-indicators [cursor-week])) x g (* g (+ 1 y))]
+         [:rect#cursor {:x            (- (* g x) g)
+                        :y            (- (* g y) g)
+                        :width        (* 3 g)
+                        :height       (* 3 g)
+                        :stroke       "white"
+                        :stroke-width 0
+                        :fill         "white"
+                        :fill-opacity 0.0}]]))))
 (defn cross []
   (let [cross (rf/subscribe [:view/cross])
-        ; TODO M
         model (rf/subscribe [:model/model])
         grid  (rf/subscribe [:view/grid])]
     (fn []
@@ -69,36 +144,23 @@
             x      (:cw c)
             y      (:project c)
             size-x (* g (- (:max-cw @model) (:min-cw @model)))
-            size-y (* g (count (:projects @model)))]
+            size-y (* g (+ 5 (count (:projects @model))))]
         [:<>
-         [:line {:x1           (+ g-half (* g x))
-                 :y1           0
-                 :x2           (+ g-half (* g x))
-                 :y2           size-y
-                 :stroke       "white"
-                 :stroke-width 3}]
-         [:line {:x1           0
-                 :y1           (+ g-half (* g y))
-                 :x2           size-x
-                 :y2           (+ g-half (* g y))
-                 :stroke       "white"
-                 :stroke-width 3}]
-         [:rect {:x            (* g x)
-                 :y            (* g y)
-                 :width        g
-                 :height       g
-                 :stroke       "black"
-                 :stroke-width 5
-                 :fill         "white"
-                 :fill-opacity 0.2}]
-         [:rect#cursor {:x            (- (* g x) g)
-                        :y            (- (* g y) g)
-                        :width        (* 3 g)
-                        :height       (* 3 g)
-                        :stroke       "white"
-                        :stroke-width 0
-                        :fill         "white"
-                        :fill-opacity 0.0}]]))))
+         [:line {:x1             (+ g-half (* g x))
+                 :y1             0
+                 :x2             (+ g-half (* g x))
+                 :y2             size-y
+                 :stroke         "white"
+                 :stroke-width   (/ g 2)
+                 :stroke-opacity 0.3}]
+         [:line {:x1             0
+                 :y1             (+ g-half (* g y))
+                 :x2             size-x
+                 :y2             (+ g-half (* g y))
+                 :stroke         "white"
+                 :stroke-width   (/ g 2)
+                 :stroke-opacity 0.3}]]))))
+
 
 (defn square []
   (let [grid (rf/subscribe [:view/grid])]
@@ -184,50 +246,6 @@
                    pairs
                    (range 20 1000 30)))))
 
-(defn weeks-from-abs-weeks [start-week num-weeks]
-  (vec (map (fn [e] (bc/week-year-from-abs-week (+ start-week e 1)))
-            (range num-weeks))))
-
-(defn weeks-indicators [all-year-weeks]
-  (map #(str (first %) "-" (second %)) all-year-weeks))
-
-(comment
-  (weeks-from-abs-weeks 100 10)
-  (weeks-indicators (weeks-from-abs-weeks 100 10)))
-
-(defn week [indicator cw g y]
-  [:text {:x                 (+ (* cw g) (/ g 2))
-          :y                 (+ y g)
-          :fill              "black"
-          :font-weight       "bold"
-          :dominant-baseline "middle"
-          :font-size         (* 0.9 g)
-          :writing-mode      "tb"}
-
-   (str indicator)])
-
-(defn weeks []
-  (let [grid  (rf/subscribe [:view/grid])
-        model (rf/subscribe [:model/model])]
-    (fn []
-      (let [m @model
-            g @grid
-            x (- (:max-cw m) (:min-cw m))
-            p (:projects m)
-            i (weeks-indicators (weeks-from-abs-weeks (:min-cw m) x))
-            y (* g (count p))]
-        (vec (cons :<> (vec (map-indexed (fn [idx e] [week e idx g y]) i))))
-        #_(vec (cons :<> (conj (vec (map (fn [cw] [square (+ gx (* cw @grid)) gy])
-                                         (range len-cw)))
-                               [:text {:x                 (+ 11 (get-svg-x-offset))
-                                       :y                 (+ (/ @grid 2) gy)
-                                       :fill              "black"
-                                       :font-weight       "bold"
-                                       :dominant-baseline "middle"
-                                       :font-size         (* 0.9 @grid)
-                                       :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
-                                (str project-id)])))))))
-
 (defn grid+cross []
   (let [;size (rf/subscribe [:view/size])
         browser-size   (rf/subscribe [:view/browser-size])
@@ -296,6 +314,7 @@
           [cross]
           [projects]
           [weeks]
+          [cursor]
           [:circle {:cx 0 :cy 0 :r 5 :fill "red"}]
           (t svg-offset-x (+ doc-offset)
              ;"grid" @grid
@@ -862,7 +881,7 @@
 (def d t/date)
 
 (defn create-model []
-  (model/generate-random-model 240)
+  (model/generate-random-model 100)
   #_(-> (model/new-model "a-model")
         (model/add-resource "engineering" 20 40)
         (model/add-pipeline "pip-25" 25)

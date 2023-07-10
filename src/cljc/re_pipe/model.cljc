@@ -600,7 +600,7 @@
         _               (time (s/valid? :g/model m-moved))]))
 
 (comment
-  (def m (generate-random-model 1000))
+  (def m (generate-random-model 5000))
   (s/valid? :g/model m)
   (require '[portal.api :as p])
   ;; OPEN portal tab at right side first
