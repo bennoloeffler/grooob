@@ -112,6 +112,10 @@
             c           @cross
             x           (:cw c)
             y           (:project c)
+            ;_           (println "y: " y)
+            ;_           (println (:projects @model))
+            p-indicator (last ((vec (:projects @model)) y))
+            ;_           (println p-indicator)
             cursor-week (bc/week-year-from-abs-week (+ x 1 (:min-cw @model)))]
 
         [:<>
@@ -123,7 +127,18 @@
                  :stroke-width 2
                  :fill         "white"
                  :fill-opacity 0.2}]
-         [week (first (weeks-indicators [cursor-week])) x g (* g (+ 1 y))]
+         [week
+          (first (weeks-indicators [cursor-week]))
+          x
+          g
+          (* g (+ 1 y))]
+         [:text {:x                 (* g (+ 2 x))
+                 :y                 (* g (+ y (/ 1 2)))
+                 :fill              "black"
+                 :font-weight       "bold"
+                 :dominant-baseline "middle"
+                 :font-size         (* 0.9 g)}
+          (str p-indicator)]
          [:rect#cursor {:x            (- (* g x) g)
                         :y            (- (* g y) g)
                         :width        (* 3 g)
