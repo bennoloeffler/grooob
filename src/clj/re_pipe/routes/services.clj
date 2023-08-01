@@ -10,12 +10,17 @@
     [re-pipe.middleware.formats :as formats]
     [ring.util.http-response :refer :all]
     [re-pipe.auth :refer :all]
+    [tick.core :as t]
     [clojure.java.io :as io]
     [puget.printer :refer [cprint]]
-    [re-pipe.db.core :as db])
+    [re-pipe.db.core :as db]
+    [time-literals.read-write])
 
 
   (:import [clojure.lang ExceptionInfo]))
+
+(time-literals.read-write/print-time-literals-clj!)
+
 
 (defn if-authorized [data then]
   (if (-> data :session :identity)
@@ -81,18 +86,18 @@
                                   (throw e))))))}}]
 
    ["/login-google"
-    {:post {:summary    "user authentictes with :session :identity"
+    {:post {:summary "user authentictes with :session :identity"
             ;:parameters {:body {:user string? :pw string?}}
-            :handler    (fn [{session :session oauth2 :oauth2/access-tokens :as data}]
-                          ;(println "AFTER client got session and called back to server:")
-                          ;(cprint data)
-                          (if (db/check-user-google (-> data :session :identity))
-                            (-> ; TODO do we need that or is the session just kept?
-                              (ok {:identity (-> data :session :identity)})
-                              (assoc :session (assoc session :identity (-> data :session :identity))))
-                            ;(ok {:identity user :session session})
-                            (unauthorized
-                              {:message "client tried google login - but no user with token found."})))}}]
+            :handler (fn [{session :session oauth2 :oauth2/access-tokens :as data}]
+                       ;(println "AFTER client got session and called back to server:")
+                       ;(cprint data)
+                       (if (db/check-user-google (-> data :session :identity))
+                         (-> ; TODO do we need that or is the session just kept?
+                           (ok {:identity (-> data :session :identity)})
+                           (assoc :session (assoc session :identity (-> data :session :identity))))
+                         ;(ok {:identity user :session session})
+                         (unauthorized
+                           {:message "client tried google login - but no user with token found."})))}}]
    ["/login"
     {:post {:summary    "user authentictes with email and password. auth-type = :auth (EDN) or \"auth\" (json)"
             :parameters {:body {:user string? :pw string?}}
@@ -120,7 +125,8 @@
 
    ["/authorized"
     {:post {:handler (fn [{session :session :as data}]
-                       ;(cprint data)
+                       (println "CALL. Authorized? ...")
+                       (cprint (:body-params data))
                        ;(println)
                        ;(println "session:")
                        ;(cprint session)
@@ -130,6 +136,15 @@
                            (ok {:answer "something authorized"})
                            (unauthorized
                              {:message "NOT AUTHORIZED!"})))}}]
+
+   ["/send-recv-date"
+    {:post {:handler (fn [{session :session :as data}]
+                       (println "CALL unauthorized. Received dates in data:")
+                       (cprint (:g/start-end-model (:body-params data)))
+                       ;(println)
+                       ;(println "session:")
+                       ;(cprint session)
+                       (ok {:answer "returing today as tick date:" :date (t/date)}))}}]
 
 
 

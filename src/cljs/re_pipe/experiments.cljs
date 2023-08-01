@@ -1,17 +1,32 @@
 (ns re-pipe.experiments
   (:require [re-frame.core :as rf]
             [belib.hiccup :as bh]
+            [belib.browser :as bb]
             [reagent.core :as r]
             [goog.events :as events]
             [cljs.pprint]
             [tick.core :as t]
-
             [clojure.string :as str]
+    ;[playback.preload]
             [re-pipe.events-timeout :as timeout])
   (:import [goog.events EventType]))
 
 
+
+(comment
+  ; mini-doc see user.clj
+  (require 'playback.preload)
+
+  ; test #> #>> #><[]
+  #>>(defn make-something [a b]
+       (->> (range (* a b))
+            (map inc)
+            (map #(* 3 %))
+            (map str)))
+  (make-something 3 3))
+
 (defn now-date-time []
+
   (t/instant))
 
 (comment
@@ -26,22 +41,31 @@
                  jsw-inner-height     (.-innerHeight js/window)
                  jsd-de-client-height (.-clientHeight (.-documentElement js/document))
                  jsd-b-client-height  (.-clientHeight (.-body js/document))]
-             [:pre (str @resize "\n"
-                        "jsw-inner-width: " jsw-inner-width "\n"
-                        "jsd-de-client-width: " jsd-de-client-width "\n"
-                        "jsd-b-client-width: " jsd-b-client-width "\n"
-                        "jsw-inner-height: " jsw-inner-height "\n"
-                        "jsd-de-client-height: " jsd-de-client-height "\n"
-                        "jsd-b-client-height: " jsd-b-client-height)]))))
+             [:pre
+              #_(bb/filter-events-map #"dr")
+              #_bb/all-events-map
+              #_[
+                 :on-copy :on-cut :on-paste
+                 :on-key-down :on-key-press :on-key-up
+                 :on-focus :on-blur
+                 :on-change :on-input :on-invalid :on-reset :on-submit]
+
+              (str @resize "\n"
+                   "jsw-inner-width: " jsw-inner-width "\n"
+                   "jsd-de-client-width: " jsd-de-client-width "\n"
+                   "jsd-b-client-width: " jsd-b-client-width "\n"
+                   "jsw-inner-height: " jsw-inner-height "\n"
+                   "jsd-de-client-height: " jsd-de-client-height "\n"
+                   "jsd-b-client-height: " jsd-b-client-height)]))))
 (defn pr-size
   "https://github.com/district0x/re-frame-window-fx"
   []
-  (let [jsw-inner-width (.-innerWidth js/window)
-        jsd-de-client-width (.-clientWidth (.-documentElement js/document))
-        jsd-b-client-width (.-clientWidth (.-body js/document))
-        jsw-inner-height (.-innerHeight js/window)
+  (let [jsw-inner-width      (.-innerWidth js/window)
+        jsd-de-client-width  (.-clientWidth (.-documentElement js/document))
+        jsd-b-client-width   (.-clientWidth (.-body js/document))
+        jsw-inner-height     (.-innerHeight js/window)
         jsd-de-client-height (.-clientHeight (.-documentElement js/document))
-        jsd-b-client-height (.-clientHeight (.-body js/document))]
+        jsd-b-client-height  (.-clientHeight (.-body js/document))]
     (println (str "jsw-inner-width: " jsw-inner-width "\n"
                   "jsd-de-client-width: " jsd-de-client-width "\n"
                   "jsd-b-client-width: " jsd-b-client-width "\n"
@@ -68,30 +92,32 @@
 
 (defn your-component []
   (let [change-class (change-after 3000 "is-red" "is-blue")]
-     (fn [] [:div {:class @change-class} "Hello, world!"])))
+    (fn [] [:div {:class @change-class} "Hello, world!"])))
 
 #_(defn timer-first-then [val-first val-then time]
     (println "timer-first-then")
-    (let [id (keyword (str val-first val-then time))
-          _ (rf/dispatch-sync [:add-id id])
-          _ (rf/reg-sub
-              id
-              (fn [db _]
-                (get-in db [:ids id])))
+    (let [id    (keyword (str val-first val-then time))
+          _     (rf/dispatch-sync [:add-id id])
+          _     (rf/reg-sub
+                  id
+                  (fn [db _]
+                    (get-in db [:ids id])))
           first (rf/subscribe [id])
-          _ (rf/dispatch [:set-timeout {:id    id
-                                        :event [:remove-id id]
-                                        :time  time}])]
+          _     (rf/dispatch [:set-timeout {:id    id
+                                            :event [:remove-id id]
+                                            :time  time}])]
       (fn [] (if @first val-first val-then))))
 
 (defn login-with-google-button []
- (let [bounce-on-off (change-after 3000 "fa-bounce" nil)]
-  (fn []
-    [:a.button.m-1
-     {:href "/login-with-google"}
-     ;:on-click #(rf/dispatch [:user/login-with-google])}
-     [:span.icon.is-large>i (bh/cs "fas" "fa-1x" "fa-brands" @bounce-on-off "fa-google")]
-     [:span "login with google"]])))
+  (let [bounce-on-off (change-after 3000 "fa-bounce" nil)]
+    (fn []
+      [:a.button.m-1
+       (merge #_bb/all-events-map
+         {} #_(bb/filter-events-map #"drag")
+         {:href "/login-with-google"})
+       ;:on-click #(rf/dispatch [:user/login-with-google])}
+       [:span.icon.is-large>i (bh/cs "fas" "fa-1x" "fa-brands" @bounce-on-off "fa-google")]
+       [:span "login with google"]])))
 
 (defn create-user-button []
   [:a.button.m-1

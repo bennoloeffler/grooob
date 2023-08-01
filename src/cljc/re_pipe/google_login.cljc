@@ -35,7 +35,7 @@
           (assoc :session next-session)))))
 
 
-(defn check-google-from-client-login [req]
+#_(defn check-google-from-client-login [req]
     ;(println "AFTER google got request and called back to server:")
     ;(cprint req)
     (let [email (-> req :session :identity)]
@@ -43,6 +43,9 @@
 
 
 ; see my login information
+
+; salesforce and facebook examples
+;https://github.com/DerGuteMoritz/clj-oauth2
 
 (defn oauth-config []
   {:google

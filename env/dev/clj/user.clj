@@ -1,15 +1,35 @@
 (ns user
   "Userspace functions you can run by default in your local REPL."
   (:require
-   [re-pipe.config :refer [env]]
-   [clojure.pprint]
-   [clojure.spec.alpha :as s]
-   [expound.alpha :as expound]
-   [mount.core :as mount]
-   [clojure.tools.logging :as log]
-   [re-pipe.core :refer [start-app]]
-   [clojure.tools.namespace.repl :refer (refresh refresh-all clear)]
-   [belib.core :as b]))
+    [re-pipe.config :refer [env]]
+    [clojure.pprint]
+    [clojure.spec.alpha :as s]
+    [expound.alpha :as expound]
+    [mount.core :as mount]
+    [clojure.tools.logging :as log]
+    [re-pipe.core :refer [start-app]]
+    [clojure.tools.namespace.repl :refer (refresh refresh-all clear)]
+    [playback.core] ; in order to be able to use #> #>> #><[] in the code
+    [belib.core :as b]))
+
+
+
+; #>      ; trace output
+; #>>     ; trace output and input/bindings/steps (depending on the form)
+; #>< _   ; reference currently selected portal data #><[]
+; #>(defn ; makes functions replay with cached data on reload
+; #>(defmethod,
+; #>(>defn ;guardrails
+(comment
+  (require 'playback.preload) ; open the portal
+  #>(defn make-something [a b]
+      #>>(->> (range (* a b))
+              (map inc)
+              (map #(* 111 %))))
+  (make-something 2 3)
+  (println #><[])
+  nil)
+
 
 
 (alter-var-root #'s/*explain-out* (constantly expound/printer))

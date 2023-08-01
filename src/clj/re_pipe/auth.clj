@@ -3,29 +3,30 @@
             [buddy.hashers :as hashers]))
 
 
-
 (defn create-user! [name email password]
-  (if (db/find-user-by-email email)
+  (if (db/find-user email)
     (throw (ex-info "User exists" {:email email :error :user-exists}))
-    (db/create-user! name email (hashers/derive password))))
+    (db/create-user-without-pw-encrypt! name
+                                        email
+                                        (hashers/derive password {:alg :pbkdf2+sha256}))))
 
 #_(defn create-user-google! [name email token]
-    (if (db/find-user-by-email email)
+    (if (db/find-user email)
       (throw (ex-info "User exists with password " {:email email :error :user-exists}))
-      (db/create-user! name email (hashers/derive token))))
+      (db/create-user-without-pw-encrypt! name email (hashers/derive token))))
 
 (comment
   (create-user! "Benno" "bel@belbel" "bel-pw"))
 
 (defn authenticate-user [email password]
-  (let [user (vec (db/find-user-by-email email))
-        hashed (last user)]
-    (when (hashers/check password hashed)
-      (take 3 user))))
+  (let [user   (db/find-user email)
+        hashed (:user/password user)]
+    (hashers/check password hashed)))
+
 
 (comment
   (authenticate-user "bel@belbel" "bel-pw")
-  (seq (db/find-user-by-email "bel@belbel")))
+  (doall (db/find-user "bel@belbel")))
 
 
 (comment

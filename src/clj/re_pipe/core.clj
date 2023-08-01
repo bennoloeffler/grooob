@@ -11,40 +11,38 @@
     [belib.cal-week-year :as bc])
   (:gen-class))
 
-(println (model/now-date-time))
-(println (bc/get-abs-current-week))
 
 ;; log uncaught exceptions in threads
 (Thread/setDefaultUncaughtExceptionHandler
   (reify Thread$UncaughtExceptionHandler
     (uncaughtException [_ thread ex]
-      (log/error {:what :uncaught-exception
+      (log/error {:what      :uncaught-exception
                   :exception ex
-                  :where (str "Uncaught exception on" (.getName thread))}))))
+                  :where     (str "Uncaught exception on" (.getName thread))}))))
 
 (def cli-options
   [["-p" "--port PORT" "Port number"
     :parse-fn #(Integer/parseInt %)]])
 
 (mount/defstate ^{:on-reload :noop} http-server
-  :start
-  (http/start
-    (-> env
-        (update :io-threads #(or % (* 2 (.availableProcessors (Runtime/getRuntime)))))
-        (assoc  :handler (handler/app))
-        (update :port #(or (-> env :options :port) %))
-        (select-keys [:handler :host :port])))
-  :stop
-  (http/stop http-server))
+                :start
+                (http/start
+                  (-> env
+                      (update :io-threads #(or % (* 2 (.availableProcessors (Runtime/getRuntime)))))
+                      (assoc :handler (handler/app))
+                      (update :port #(or (-> env :options :port) %))
+                      (select-keys [:handler :host :port])))
+                :stop
+                (http/stop http-server))
 
 (mount/defstate ^{:on-reload :noop} repl-server
-  :start
-  (when (env :nrepl-port)
-    (nrepl/start {:bind (env :nrepl-bind)
-                  :port (env :nrepl-port)}))
-  :stop
-  (when repl-server
-    (nrepl/stop repl-server)))
+                :start
+                (when (env :nrepl-port)
+                  (nrepl/start {:bind (env :nrepl-bind)
+                                :port (env :nrepl-port)}))
+                :stop
+                (when repl-server
+                  (nrepl/stop repl-server)))
 
 
 (defn stop-app []

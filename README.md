@@ -9,15 +9,22 @@ View everything in Realtime.
 
 ## BUGs
 
+- focus lost: disable mouse listener outside of projects view
 - fix: login success:  {:identity nil}
 - fix: only one way with proper error message: google user may override normal login
 
 ## TODOs, next steps
 
-- create rand-project function
-  that creates a model with 3 random tasks around "today"
-- on init: create a model with 3 projects and 3 tasks each
-- send an example model to server and save it to data-hike
+- ok: s: send an example model to server and save it to data-hike
+- read about how to init data in re-frame
+    - https://ericnormand.me/guide/re-frame-lifecycle
+    - https://ericnormand.me/guide/database-structure-in-re-frame#initialization
+- have the project window initialized only once
+- add the key handeler to the project window and deregister
+- save data model to localstorage as basis for load and project window
+- show "second window" with
+    - load details
+    - project details
 
 ## Features / Releases
 

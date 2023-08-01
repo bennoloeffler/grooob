@@ -1,21 +1,55 @@
 (ns re-pipe.project-ui
   (:require [re-frame.core :as rf]
+            [reagent.core :as reagent]
+            [reagent.dom :as rd]
             [tick.core :as t]
+            [java.time :refer [LocalDate]]
+    ;[tick.alpha.api :as ta]
             [goog.events.KeyCodes :as keycodes]
             [goog.events :as events]
             [goog.object :as gobj]
             [goog.functions]
             [clojure.pprint :refer [pprint]]
-            [belib.browser :as b]
+            [belib.browser :as bb]
             [belib.spec :as bs]
             [re-pipe.model :as model]
             [re-pipe.model-spec :as ms]
             [belib.cal-week-year :as bc]
-            [goog.history.EventType :as HistoryEventType])
+            [ajax.core :as ajax]
+            [goog.history.EventType :as HistoryEventType]
+            [time-literals.read-write]
+            [luminus-transit.time :as time]
+            [cognitect.transit :as transit]
+            [re-pressed.core :as rp])
   (:import goog.History
            [goog.events EventType KeyHandler]))
 
-(bs/validate :g/model ms/example-model)
+
+(time-literals.read-write/print-time-literals-cljs!)
+#_(cljs.reader/register-tag-parser! time-literals.read-write/tags)
+#_(doall (map #(cljs.reader/register-tag-parser! (first %) (second %)) time-literals.read-write/tags))
+(cljs.reader/register-tag-parser! 'time/date (time-literals.read-write/tags 'time/date))
+
+#_(clojure.edn/read-string {:readers time-literals.read-write/tags} "#time/date \"2011-01-01\"")
+;(clojure.edn/read-string "#time/date \"2011-01-01\"")
+;(println (t/date "2011-01-01"))
+
+(comment
+  (time-literals.read-write/print-time-literals-cljs!)
+  (time-literals.read-write/print-time-literals-clj!)
+  (map #(cljs.reader/register-tag-parser! (first %) (second %)) time-literals.read-write/tags)
+
+  (time-literals.read-write/print-time-literals-cljs!)
+  (cljs.reader/register-tag-parser! 'time/date (time-literals.read-write/tags 'time/date))
+  (def d #time/date "2039-01-01")
+  (time-literals.read-write/tags 'time/period))
+
+
+
+
+(comment
+  (bs/validate :g/model ms/example-model)
+  (.open js/window "#/"))
 
 (defn scrollCursorVisible []
   (let [cursor (.getElementById js/document "cursor")]
@@ -54,7 +88,13 @@
     (fn []
 
       (let [now (bc/week-year-from-abs-week (+ (:min-cw @model) (:cw @cross)))]
-        [:pre (str now ", " @cross ", min-max-cw: " (:min-cw @model) ", " (:max-cw @model) ", now: " (bc/get-abs-current-week))]))))
+        [:<>
+         [:a.button.is-small.m-1
+          {:on-click #(rf/dispatch [:user/add-random-user])}
+          [:span.icon>i.fas.fa-lg.fa-chart-gantt]
+          [:span "open project view"]]
+         #_[:div (str now ", " @cross ", min-max-cw: " (:min-cw @model) ", " (:max-cw @model) ", now: " (bc/get-abs-current-week))]
+         [:div (str ((vec (:projects @model)) (:project @cross)))]]))))
 
 
 (defn weeks-from-abs-weeks [start-week num-weeks]
@@ -72,9 +112,9 @@
   [:text {:x                 (+ (* cw g) (/ g 2))
           :y                 (+ y g)
           :fill              "black"
-          :font-weight       "bold"
+          ;:font-weight       "bold"
           :dominant-baseline "middle"
-          :font-size         (* 0.9 g)
+          :font-size         (* 0.8 g)
           :writing-mode      "tb"}
 
    (str indicator)])
@@ -140,16 +180,16 @@
          [:text {:x                 (* g (+ 2 x))
                  :y                 (* g (+ y (/ 1 2)))
                  :fill              "black"
-                 :font-family       "Nunito" #_"verdana" #_"arial" #_"titillium web"
-                 :text-rendering    "geometricPrecision"
+                 ;:font-family       "Nunito" #_"verdana" #_"arial" #_"titillium web"
+                 ;:text-rendering    "geometricPrecision"
                  :font-weight       "bold"
                  :dominant-baseline "middle"
                  :font-size         (* 1.4 g)}
           (str p-indicator)]
-         [:rect#cursor {:x            (- (* g x) g)
-                        :y            (- (* g y) g)
-                        :width        (* 3 g)
-                        :height       (* 3 g)
+         [:rect#cursor {:x            (- (* g x) (* 4 g))
+                        :y            (- (* g y) (* 4 g))
+                        :width        (* 9 g)
+                        :height       (* 9 g)
                         :stroke       "white"
                         :stroke-width 0
                         :fill         "white"
@@ -208,9 +248,9 @@
                              [:text {:x                 (+ 11 (get-svg-x-offset))
                                      :y                 (+ (/ @grid 2) gy)
                                      :fill              "black"
-                                     :font-weight       "bold"
+                                     ;:font-weight       "bold"
                                      :dominant-baseline "middle"
-                                     :font-size         (* 0.9 @grid)
+                                     :font-size         (* 0.8 @grid)
                                      :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
                               (str project-id)])))))))
 
@@ -268,12 +308,115 @@
                    pairs
                    (range 20 1000 30)))))
 
+
+(defn dragging [from to]
+  (pprint [from :to to]))
+(def dragging-debounced (bb/debounced-now dragging 200))
+
+(def start-dragging (atom nil))
+
+(defn get-x-y-vec [event]
+  (let [xe   (.-pageX event)
+        ye   (.-pageY event)
+        svg  (.getElementById js/document "svgElement")
+        rect (.getBoundingClientRect svg)
+        left (.-left rect)
+        top  (.-top rect)
+        x    (- xe left)
+        y    (- ye top)]
+    {:x x :y y}))
+
+;; TODO set the listeners to the right div
+#_(events/listen js/window
+                 EventType.MOUSEDOWN
+                 (fn [event] (reset! start-dragging {:x (.-offsetX event)
+                                                     :y (.-offsetY event)})))
+(defn mouse-down-fn [event] (reset! start-dragging (get-x-y-vec event)))
+#_(events/listen js/window
+                 EventType.MOUSEUP
+                 #(reset! start-dragging nil))
+(defn mouse-up-fn [event] (reset! start-dragging nil))
+
+#_(events/listen js/window
+                 EventType.MOUSEMOVE
+                 (fn [event] (when @start-dragging
+                               (dragging-debounced @start-dragging {:x (.-offsetX event)
+                                                                    :y (.-offsetY event)}))))
+(defn mouse-move-fn [event] (when @start-dragging
+                              (dragging-debounced @start-dragging (get-x-y-vec event))))
+
+(defn click-fn [event]
+  #_(bb/prjs event)
+  (let [;e    (js->clj event)
+        ;em   (bb/js-obj->clj-map event)
+        {:keys [x y]} (get-x-y-vec event)]
+    (rf/dispatch [:view/cross-abs-move x y])))
+
+
+#_(def ignore-prevent-default {187 true
+                               189 true})
+#_(def shift-down (atom false))
+#_(defn capture-key
+    "Given a `keycode`, execute function `f` "
+    ; see https://github.com/reagent-project/historian/blob/master/src/cljs/historian/keys.cljs
+    [keycode-map]
+    (let [
+          press-fn (fn [key-press]
+                     (let [key-code (.. key-press -keyCode)]
+                       (when (= 16 key-code)
+                         (reset! shift-down true))
+                       (when-let [f (get keycode-map key-code)]
+                         (when-not (ignore-prevent-default key-code)
+                           (.preventDefault key-press))
+                         (f))))]
+
+      ;(println (.. key-press -keyCode)))))]
+      (println "register listeners")
+      (events/listen js/window
+                     EventType.KEYDOWN #_(-> KeyHandler .-EventType .-KEY)
+                     press-fn)
+      (events/listen js/window
+                     EventType.KEYUP #_(-> KeyHandler .-EventType .-KEY)
+                     (fn [key-press]
+                       (when (= 16 (.. key-press -keyCode))
+                         (reset! shift-down false))))))
+
+#_(defn key-down-fn [key-press]
+    (println "key-down X" key-press))
+
+#_(defn key-up-fn [key-press]
+    (println "key-up Y" key-press)
+    #_(when (= 16 (.. key-press -keyCode))
+        (reset! shift-down false)))
+
+
+#_(defn register-key-handler []
+    ;; sets up the event listener
+    (capture-key {;keycodes/ENTER           #(println "ENTER")
+                  #_keycodes/PLUS_SIGN 187 #(do (rf/dispatch [:view/zoom 1.1])
+                                                #_(rf/dispatch [:view/cross-visible]))
+                  #_keycodes/SEMICOLON 189 #(do (rf/dispatch [:view/zoom 0.9])
+                                                #_(rf/dispatch [:view/cross-visible]))
+                  keycodes/S               #(rf/dispatch [:model/save])
+                  keycodes/LEFT            #(if @shift-down
+                                              (rf/dispatch [:view/project-move -1])
+                                              (do (rf/dispatch [:view/cross-move {:cw (- 1) :project 0}])
+                                                  (rf/dispatch [:view/cross-visible])))
+                  keycodes/RIGHT           #(if @shift-down
+                                              (rf/dispatch [:view/project-move 1])
+                                              (do (rf/dispatch [:view/cross-move {:cw 1 :project 0}])
+                                                  (rf/dispatch [:view/cross-visible])))
+                  keycodes/UP              #(do (rf/dispatch [:view/cross-move {:cw 0 :project (- 1)}])
+                                                (rf/dispatch [:view/cross-visible]))
+                  keycodes/DOWN            #(do (rf/dispatch [:view/cross-move {:cw 0 :project 1}])
+                                                (rf/dispatch [:view/cross-visible]))}))
+
+
 (defn grid+cross []
   (let [;size (rf/subscribe [:view/size])
         browser-size   (rf/subscribe [:view/browser-size])
         browser-scroll (rf/subscribe [:view/browser-scroll])
         grid           (rf/subscribe [:view/grid])
-        ; TODO M
         m              (rf/subscribe [:model/model])
         cross-data     (rf/subscribe [:view/cross])
         registered     (atom nil)]
@@ -327,12 +470,20 @@
          ;:autoflow :auto}}
 
 
-         [:svg {:id     "svgElement"
-                :style  {:background-color "lightgray"}
+         [:svg {:id            "svgElement"
+                :style         {:background-color "lightgray"}
                 ;+:viewBox    (str "0 0 " 1000 " " (/ 1000 xy-ratio))
-                :width  x-px #_"100vw"
-                :height y-px #_"100vh"}
+                :width         x-px #_"100vw"
+                :height        y-px #_"100vh"
+                :font-family   "Nunito"
+                :on-click      click-fn
+                :on-mouse-down mouse-down-fn
+                :on-mouse-move mouse-move-fn
+                :on-mouse-up   mouse-up-fn}
+          ;:on-key-down   key-down-fn
+          ;:on-key-up     key-up-fn}
           ;:onLoad     #(println "load svg")}
+          #_(register-all-listeners (.getElementById js/document "svgElement"))
           [cross]
           [projects]
           [weeks]
@@ -380,15 +531,161 @@
           [:circle {:cx x-px :cy y-px :r 5 :fill "red"}]]]))))
 
 
+(defn render-logged-in-form []
+  (fn [id]
+    [:<>
+     [:br]
+     [cross-pos]
+     [grid+cross]]))
+
+{;keycodes/ENTER           #(println "ENTER")
+ #_keycodes/PLUS_SIGN 187 #(do (rf/dispatch [:view/zoom 1.1])
+                               #_(rf/dispatch [:view/cross-visible]))
+ #_keycodes/SEMICOLON 189 #(do (rf/dispatch [:view/zoom 0.9])
+                               #_(rf/dispatch [:view/cross-visible]))
+ keycodes/S               #(rf/dispatch [:model/save])
+ keycodes/LEFT            #(if nil #_@shift-down
+                             (rf/dispatch [:view/project-move -1])
+                             (do (rf/dispatch [:view/cross-move {:cw (- 1) :project 0}])
+                                 (rf/dispatch [:view/cross-visible])))
+ keycodes/RIGHT           #(if nil #_@shift-down
+                             (rf/dispatch [:view/project-move 1])
+                             (do (rf/dispatch [:view/cross-move {:cw 1 :project 0}])
+                                 (rf/dispatch [:view/cross-visible])))
+ keycodes/UP              #(do (rf/dispatch [:view/cross-move {:cw 0 :project (- 1)}])
+                               (rf/dispatch [:view/cross-visible]))
+ keycodes/DOWN            #(do (rf/dispatch [:view/cross-move {:cw 0 :project 1}])
+                               (rf/dispatch [:view/cross-visible]))}
+
+(def project-view-keydown-rules
+  {:event-keys [
+
+                ;; Move PROJECT with shift <- -> AD
+
+                [[:view/project-move 1]
+                 ;; will be triggered if
+                 [{:keyCode keycodes/RIGHT :shiftKey true}]
+                 [{:keyCode keycodes/D :shiftKey true}]] ;  AD
+
+                [[:view/project-move -1]
+                 ;; will be triggered if
+                 [{:keyCode keycodes/LEFT :shiftKey true}]
+                 [{:keyCode keycodes/A :shiftKey true}]] ;  AD
+
+                ;; Move CURSOR / CROSS with <- ->
+
+                [;; this event
+                 [:view/cross-move {:cw 0 :project -1}]
+                 ;; will be triggered if
+                 [{:keyCode keycodes/UP}]
+                 ;; or
+                 [{:keyCode keycodes/W}]] ;  WASD
+                ;; is pressed
+
+                [[:view/cross-move {:cw 0 :project 1}]
+                 ;; will be triggered if
+                 [{:keyCode keycodes/DOWN}]
+                 [{:keyCode keycodes/S}]] ;  WASD
+
+                [[:view/cross-move {:cw 1 :project 0}]
+                 ;; will be triggered if
+                 [{:keyCode keycodes/RIGHT}]
+                 [{:keyCode keycodes/D}]] ;  WASD
+
+                [[:view/cross-move {:cw -1 :project 0}]
+                 ;; will be triggered if
+                 [{:keyCode keycodes/LEFT}]
+                 [{:keyCode keycodes/A}]] ;  WASD
+
+                ;; ZOOM with  + / -  or with  z / shift-z
+
+                [[:view/zoom 0.9]
+                 ;; will be triggered if
+                 [{:keyCode keycodes/DASH}]
+                 [{:keyCode keycodes/Z :shiftKey true}]]
+
+                [[:view/zoom 1.1]
+                 ;; will be triggered if
+                 [{:keyCode #_keycodes/PLUS_SIGN 187}] ; PLUS_SIGN does not work?
+                 [{:keyCode keycodes/Z}]]]
+
+
+
+   ;; tab is pressed twice in a row
+   ;[{:keyCode 9} {:keyCode 9}]]]
+
+
+   ;; takes a collection of key combos that, if pressed, will clear
+   ;; the recorded keys
+   :clear-keys
+   ;; will clear the previously recorded keys if
+   [] #_[;; escape
+         [{:keyCode 27}]
+         ;; or Ctrl+g
+         [{:keyCode 71
+           :ctrlKey true}]]
+   ;; is pressed
+
+   ;; takes a collection of keys that will always be recorded
+   ;; (regardless if the user is typing in an input, select, or textarea)
+   :always-listen-keys
+   ;; will always record if
+   [;; enter
+    {:keyCode 13}]
+   ;; is pressed
+
+   ;; takes a collection of keys that will prevent the default browser
+   ;; action when any of those keys are pressed
+   ;; (note: this is only available to keydown)
+   :prevent-default-keys
+   ;; will prevent the browser default action if
+   [{:keyCode keycodes/UP}
+    {:keyCode keycodes/DOWN}
+    {:keyCode keycodes/LEFT}
+    {:keyCode keycodes/RIGHT}
+    ;; Ctrl+g
+    #_{:keyCode 71
+       :ctrlKey true}]})
+;; is pressed
 
 (defn logged-in-form []
-  [:<>
-   [:br]
-   [cross-pos]
-   [grid+cross]
-   #_[:pre (with-out-str (pprint @re-frame.db/app-db))]
-   #_[:pre (str "logged in: " @(rf/subscribe [:user]))]])
+  (let [key-up-listener   (atom nil)
+        key-down-listener (atom nil)]
+    (reagent/create-class
+      {:display-name           "projects-view=logged-in-form"
+       :reagent-render         render-logged-in-form
+       :component-did-mount    (fn []
+                                 (println "Projects view mounted. Install key listeners.")
+                                 (rf/dispatch [::rp/set-keydown-rules
+                                               project-view-keydown-rules])
+                                 #_(let [kdl (events/listen js/window
+                                                            EventType.KEYDOWN
+                                                            (fn [key-press]
+                                                              (println "key down")))
+                                         kul (events/listen js/window
+                                                            EventType.KEYUP
+                                                            (fn [key-press]
+                                                              (println "key up")))]
+                                     (reset! key-down-listener kdl)
+                                     (reset! key-up-listener kul)))
 
+       :component-will-unmount (fn []
+                                 (println "Projects view will unmount. Uninstall key listeners.")
+                                 (rf/dispatch [::rp/set-keydown-rules
+                                               {}])
+                                 #_(events/unlistenByKey @key-down-listener)
+                                 #_(events/unlistenByKey @key-up-listener))})))
+
+(comment
+  (def l (events/listen js/window
+                        EventType.KEYUP #_(-> KeyHandler .-EventType .-KEY)
+                        (fn [key-press]
+                          (println "key pressed"))))
+  ;(def listener-key ((bb/js-obj->clj-map l) "listener"))
+  (events/unlistenByKey l)
+  #_[:pre (with-out-str (pprint @re-frame.db/app-db))]
+  #_[:pre (str "logged in: " @(rf/subscribe [:user]))]
+  nil)
 (def grid 20)
 (declare create-model)
 
@@ -403,20 +700,26 @@
              (assoc-in [:view :offset-cw] 0)
              (assoc-in [:model] (create-model)))}))
 
+#_(rf/reg-event-fx
+    :view/cross-up
+    (fn [_ _]
+      {:fx [[:view/cross-move {:cw 0 :project (- 1)}]
+            [:view/cross-visible]]}))
+
 (rf/reg-event-db
   :view/cross-visible
   (fn [db [_ data]]
     (scrollCursorVisible)))
 
-(rf/reg-event-db
+(rf/reg-event-fx
   :view/cross-move
 
-  (fn [db [_ data]]
-    (let [new-cross   (merge-with +
+  (fn [cofx [_ data]]
+    (let [db          (:db cofx)
+          new-cross   (merge-with +
                                   (get-in db [:view :cross])
                                   data)
           g           (get-in db [:view :grid])
-          ; TODO M
           model       (get-in db [:model])
           size-x      (* g (- (get (second (:g/start-end-model-cw model)) 0)
                               (get (first (:g/start-end-model-cw model)) 0)))
@@ -427,18 +730,23 @@
                               (>= (* g (:project new-cross)) size-y))
                         (get-in db [:view :cross])
                         new-cross)]
-      (assoc-in db [:view :cross]
-                valid-cross))))
+      {:db       (assoc-in db [:view :cross]
+                           valid-cross)
+       :dispatch [:view/cross-visible]})))
 
 (rf/reg-event-db
   :view/cross-abs-move
   (fn [db [_ x y]]
-    (let [g  (get-in db [:view :grid])
-          cw (quot x g)
-          pr (quot y g)]
+    (let [g      (get-in db [:view :grid])
+          cw     (quot x g)
+          pr     (quot y g)
+          model  (get-in db [:model])
+          size-y (count (:g/projects model))]
       ;(println "x/y: "x"/"y ", cw/pr: "cw"/"pr)
-      (assoc-in db [:view :cross]
-                {:cw cw :project pr}))))
+      (if (< pr size-y)
+        (assoc-in db [:view :cross]
+                  {:cw cw :project pr})
+        db))))
 
 
 (rf/reg-event-db
@@ -448,8 +756,6 @@
           pr-keys (vec (keys (get-in db [:model :g/projects])))
           pr-id   (pr-keys (:project cross))]
       (-> db
-
-          ; TODO M
           (update :model model/move-project pr-id (* 7 cw))
           (update-in [:view :cross :cw] + cw)))))
 
@@ -457,7 +763,7 @@
 (rf/reg-event-db
   :view/zoom
   (fn [db [_ zoom-factor]]
-    (println "zoom" zoom-factor)
+    ;(println "zoom" zoom-factor)
     (let [cross       (get-in db [:view :cross])
           {sx :x sy :y} (get-in db [:view :size])
           g           (get-in db [:view :grid])
@@ -507,7 +813,7 @@
 
 
 (def debounce-resize-fn
-  (b/debounced-now #_goog.functions.debounce
+  (bb/debounced-now #_goog.functions.debounce
     (fn resize-fn [event] (rf/dispatch [:view/resize])) 100))
 
 (defn resize-fn [event]
@@ -525,7 +831,7 @@
                resize-fn)
 
 (def debounce-scroll-fn
-  (b/debounced-now #_goog.functions.debounce
+  (bb/debounced-now #_goog.functions.debounce
     (fn dispatch-browser-scroll [event]
       ;(cljs.pprint/pprint (b/js-obj->clj-map event))
       (rf/dispatch [:view/browser-scroll]))
@@ -586,83 +892,46 @@
   (fn [db _]
     (-> db :view :grid)))
 
-(def shift-down (atom false))
-(defn capture-key
-  "Given a `keycode`, execute function `f` "
-  ; see https://github.com/reagent-project/historian/blob/master/src/cljs/historian/keys.cljs
-  [keycode-map]
-  (let [;key-handler (KeyHandler. js/document)
-        press-fn (fn [key-press]
+#_(def ignore-prevent-default {187 true
+                               189 true})
 
-                   (when (= 16 (.. key-press -keyCode))
-                     (reset! shift-down true))
-                   (when-let [f (get keycode-map (.. key-press -keyCode))]
-                     (.preventDefault key-press)
-                     (f)))]
+#_(def shift-down (atom false))
+#_(defn capture-key
+    "Given a `keycode`, execute function `f` "
+    ; see https://github.com/reagent-project/historian/blob/master/src/cljs/historian/keys.cljs
+    [keycode-map]
+    (let [;key-handler (KeyHandler. js/document)
+          press-fn (fn [key-press]
+                     (let [key-code (.. key-press -keyCode)]
+                       (when (= 16 key-code)
+                         (reset! shift-down true))
+                       (when-let [f (get keycode-map key-code)]
+                         (when-not (ignore-prevent-default key-code)
+                           (.preventDefault key-press))
+                         (f))))]
 
-    ;(println (.. key-press -keyCode)))))]
-    (println "register listeners")
-    (events/listen js/window
-                   EventType.KEYDOWN #_(-> KeyHandler .-EventType .-KEY)
-                   press-fn)
-    (events/listen js/window
-                   EventType.KEYUP #_(-> KeyHandler .-EventType .-KEY)
-                   (fn [key-press]
-                     (when (= 16 (.. key-press -keyCode))
-                       (reset! shift-down false))))))
-
-
-(defn mouse-fn [event]
-  ;(b/prjs event)
-  (let [x (.-offsetX event)
-        y (.-offsetY event)]
-    (rf/dispatch [:view/cross-abs-move x y])))
-
-(events/listen js/window
-               EventType.CLICK
-               mouse-fn)
+      ;(println (.. key-press -keyCode)))))]
+      (println "register listeners")
+      (events/listen js/window
+                     EventType.KEYDOWN #_(-> KeyHandler .-EventType .-KEY)
+                     press-fn)
+      (events/listen js/window
+                     EventType.KEYUP #_(-> KeyHandler .-EventType .-KEY)
+                     (fn [key-press]
+                       (when (= 16 (.. key-press -keyCode))
+                         (reset! shift-down false))))))
 
 
-(defn dragging [from to]
-  (pprint [from :to to]))
-(def dragging-debounced (b/debounced-now dragging 200))
+(comment
+  (type (KeyHandler. js/document))
+  (def l (events/listen (KeyHandler. js/document) #_js/window
+                        EventType.KEYUP #_(-> KeyHandler .-EventType .-KEY)
+                        (fn [key-press]
+                          (println "key pressed")
+                          (println (bb/js-obj->clj-map key-press)))))
+  (def listener-key ((bb/js-obj->clj-map l) "listener"))
+  (events/unlistenByKey l))
 
-(def start-dragging (atom nil))
-
-(events/listen js/window
-               EventType.MOUSEDOWN
-               (fn [event] (reset! start-dragging {:x (.-offsetX event)
-                                                   :y (.-offsetY event)})))
-(events/listen js/window
-               EventType.MOUSEUP
-               #(reset! start-dragging nil))
-
-(events/listen js/window
-               EventType.MOUSEMOVE
-               (fn [event] (when @start-dragging
-                             (dragging-debounced @start-dragging {:x (.-offsetX event)
-                                                                  :y (.-offsetY event)}))))
-
-
-(defn register-key-handler []
-  ;; sets up the event listener
-  (capture-key {;keycodes/ENTER           #(println "ENTER")
-                #_keycodes/PLUS_SIGN 187 #(do (rf/dispatch [:view/zoom 1.1])
-                                              #_(rf/dispatch [:view/cross-visible]))
-                #_keycodes/SEMICOLON 189 #(do (rf/dispatch [:view/zoom 0.9])
-                                              #_(rf/dispatch [:view/cross-visible]))
-                keycodes/LEFT            #(if @shift-down
-                                            (rf/dispatch [:view/project-move -1])
-                                            (do (rf/dispatch [:view/cross-move {:cw (- 1) :project 0}])
-                                                (rf/dispatch [:view/cross-visible])))
-                keycodes/RIGHT           #(if @shift-down
-                                            (rf/dispatch [:view/project-move 1])
-                                            (do (rf/dispatch [:view/cross-move {:cw 1 :project 0}])
-                                                (rf/dispatch [:view/cross-visible])))
-                keycodes/UP              #(do (rf/dispatch [:view/cross-move {:cw 0 :project (- 1)}])
-                                              (rf/dispatch [:view/cross-visible]))
-                keycodes/DOWN            #(do (rf/dispatch [:view/cross-move {:cw 0 :project 1}])
-                                              (rf/dispatch [:view/cross-visible]))}))
 
 
 (def p-small [[1 0 3] ; id, cw, len in cw
@@ -903,7 +1172,7 @@
 (def d t/date)
 
 (defn create-model []
-  (model/generate-random-model 100)
+  (model/generate-random-model 30)
   #_(-> (model/new-model "a-model")
         (model/add-resource "engineering" 20 40)
         (model/add-pipeline "pip-25" 25)
@@ -931,3 +1200,53 @@
   (.scrollTo js/window 0 0)
   (def cursor (.getElementById js/document "cursor"))
   (.scrollIntoView cursor))
+
+(def time-deserialization-handlers
+  (assoc-in time/time-deserialization-handlers
+            [:handlers "LocalDate"] (transit/read-handler #(t/date %))))
+
+(def time-serialization-handlers
+  (assoc-in time/time-serialization-handlers
+            [:handlers LocalDate] (transit/write-handler
+                                    (constantly "LocalDate")
+                                    #(str %))))
+
+;(belib.browser/js-obj->clj-map time-serialization-handlers)
+
+;(def date (t/date "2023-04-03"))
+;(println "TYPE")
+;(println (= (type date) java.time.LocalDate))
+;(println java.time.LocalDate)
+
+(comment
+  (defn transit-out [data]
+    (let [w (transit/writer :json time-serialization-handlers)]
+      (transit/write w data)))
+
+  (defn transit-in [data]
+    (let [r (transit/reader :json time-deserialization-handlers)]
+      (transit/read r data)))
+
+  (println "t/date OUT: " (transit-out (t/date "2023-04-03")))
+  (transit-out {:x "y"})
+  (def date-transit (transit-out (t/date)))
+  (def restored-date (transit-in date-transit)))
+
+
+(rf/reg-event-fx
+  :model/save
+  (fn [cofx _]
+    (println "saving model:")
+    ;(pprint (:model (:db cofx))) ;TODO remove load data???
+    {:http-xhrio {:method          :post
+                  :params          (:model (:db cofx))
+                  :uri             "/api/send-recv-date"
+                  :format          (ajax/transit-request-format #_ajax/json-request-format
+                                     time-serialization-handlers)
+                  :response-format (ajax/transit-response-format #_(ajax/raw-response-format {:keywords? true})
+                                     time-deserialization-handlers)
+                  :on-success      [:authorized-success]
+                  :on-failure      [:authorized-failure]}}))
+
+(comment
+  (type (#time/date "2039-01-01")))

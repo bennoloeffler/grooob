@@ -15,7 +15,7 @@
       [java.time Period]))
 
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 ;;--------------------
 ;; based on week time model
@@ -210,7 +210,7 @@
 ;;----------------
 ;; projects - spec
 ;;-----------------
-(def projects-ids-range (vec (map str (range 100 150))))
+(def projects-ids-range (vec (map str (range 100 110))))
 (def projects-ids-set (set projects-ids-range))
 (defn get-rand-project-id [] (rand-nth projects-ids-range))
 

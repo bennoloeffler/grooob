@@ -15,12 +15,12 @@
     [clojure.string :as string]
     [belib.hiccup :as bh]
     [re-pipe.events-timeout]
-    [re-pipe.project-ui :as ui])
-
+    [re-pipe.project-ui :as ui]
+    [re-pressed.core :as rp])
   (:import goog.History
            [goog.events EventType KeyHandler]))
 
-(println (model/now-date-time))
+;(println (model/now-date-time))
 
 ; https://ericnormand.me/guide/re-frame-building-blocks
 ; postgres notifications: reactive... https://yogthos.net/posts/2016-11-05-LuminusPostgresNotifications.html
@@ -146,19 +146,19 @@
            [input-field data :pw-repeat :password "repeat Password"]]
 
           [:div.column
-            [:label.checkbox-container
-             [:input.input {:type "checkbox"
-                            :on-change #(let [val (-> % .-target .-checked)]
-                                          (println val)
-                                          (swap! data assoc :terms val))}]
-             [:span.checkbox-checkmark {:style {:margin-top "3px"}}] [:div " I agree to the" [:a.has-text-primary {:href "#"} " terms and conditions"]]]]
+           [:label.checkbox-container
+            [:input.input {:type      "checkbox"
+                           :on-change #(let [val (-> % .-target .-checked)]
+                                         (println val)
+                                         (swap! data assoc :terms val))}]
+            [:span.checkbox-checkmark {:style {:margin-top "3px"}}] [:div " I agree to the" [:a.has-text-primary {:href "#"} " terms and conditions"]]]]
 
 
 
 
 
-           ;[:label.checkbox [:input {:type "checkbox"}] " Remember me"]]
-           ;[:input {:type "checkbox"}] " I agree to the" [:a.has-text-primary {:href "#"} " terms and conditions"]]
+          ;[:label.checkbox [:input {:type "checkbox"}] " Remember me"]]
+          ;[:input {:type "checkbox"}] " I agree to the" [:a.has-text-primary {:href "#"} " terms and conditions"]]
           [:div.column
            [:button.button.is-light.is-outlined.is-fullwidth
             {:type     "submit"
@@ -190,20 +190,21 @@
                 [:div.navbar-start
                  [nav-link "#/" "Home" :home]
                  [nav-link "#/about" "About" :about]
-                 [nav-link "#/ex" "Experiments" :experiments]]]
+                 [nav-link "#/ex" "Experiments" :experiments]
+                 [nav-link "#/projects-portfolio" "Projects" :projects-portfolio]]]
                [:div.navbar-end
                 [:div.navbar-item.mr-3]]]))
 
-                 ;[tb/test-button]
+;[tb/test-button]
 
 
 (defn about-page []
-   [:div
-    [:h1.title "grooob"]
-    [:h4.subtitle.is-white "capacity planning " [:br]"without distracting details"]
-    [:div "who did it:" [:br][:span.is-white " Benno Löffler"]][:br]
-    [:div "how to contact:" [:br][:span.is-white " benno.loeffler AT gmx.de"]][:br]
-    [:div "where to find sources:" [:br][:a {:href "https://github.com/bennoloeffler/grooob"} " here on github"]]])
+  [:div
+   [:h1.title "grooob"]
+   [:h4.subtitle.is-white "capacity planning " [:br] "without distracting details"]
+   [:div "who did it:" [:br] [:span.is-white " Benno Löffler"]] [:br]
+   [:div "how to contact:" [:br] [:span.is-white " benno.loeffler AT gmx.de"]] [:br]
+   [:div "where to find sources:" [:br] [:a {:href "https://github.com/bennoloeffler/grooob"} " here on github"]]])
 
 (defn logout-page [data]
   [:section.section>div.container>div.content
@@ -214,60 +215,71 @@
 
 (defn register-page []
   [:div
-    [:h1.title "grooob.com"]
-    [:h4.subtitle "register a free account"]
-    ;[:br]
-    ;[:br]
-    [register-form]])
+   [:h1.title "grooob.com"]
+   [:h4.subtitle "register a free account"]
+   ;[:br]
+   ;[:br]
+   [register-form]])
 
 (defn user []
   (let [user (rf/subscribe [:user])]
     (fn []
       [:span "user: " [:strong (:identity @user)]])))
 
+(defn projects-portfolio-page []
+  (let [user-data (rf/subscribe [:user])]
+    (fn []
+      [:<>
+       (if @user-data
+         [:div "logged in: " [:b (:identity @user-data)]]
+         [:div "logged in: NO"])
+
+       [ui/logged-in-form]])))
+
 
 (defn home-page []
   (let [user-data (rf/subscribe [:user])]
     (fn []
       [:<>
-        [ui/logged-in-form]
-        #_[:div
-            [:h1.title "grooob.com"]
-            [:h4.subtitle "capacity planning without distracting details"]]
-        #_(if @user-data
-            [ui/logged-in-form]
-            [login-form])])))
+       #_[ui/logged-in-form]
+       #_[:div
+          [:h1.title "grooob.com"
+           [:h4.subtitle "capacity planning without distracting details"]]]
+       (if @user-data
+         [ui/logged-in-form]
+         [login-form])])))
+
 
 (defn home-page-from-google []
-      [:<>
-       [:div "welcome back from google login..."]
-       [:br][:br]
-       [home-page]])
+  [:<>
+   [:div "welcome back from google login..."]
+   [:br] [:br]
+   [home-page]])
 
 (defn page []
-  (let [page (rf/subscribe [:common/page])
-        alert-msg (rf/subscribe [:alert-message])
+  (let [page        (rf/subscribe [:common/page])
+        alert-msg   (rf/subscribe [:alert-message])
         alert-blink (rf/subscribe [:alert-blink])]
     (fn []
       (if @page
         [:div
          [navbar]
-         [:div {:style {:padding-top "4px"
+         [:div {:style {:padding-top  "4px"
                         :padding-left "30px"
-                        :font-weight "bold"
-                        :color "white"
-                        :height (if @alert-msg "40px" "5px")
-                        :background (if @alert-msg "darkred" "white")
-                        :transition "font-size 1s, height 500ms"
+                        :font-weight  "bold"
+                        :color        "white"
+                        :height       (if @alert-msg "40px" "5px")
+                        :background   (if @alert-msg "darkred" "white")
+                        :transition   "font-size 1s, height 500ms"
                         ;:visibility (if @alert-msg "visible" "hidden")
-                        :font-size (if @alert-msg "20px" "5px")}} @alert-msg]
+                        :font-size    (if @alert-msg "20px" "5px")}} @alert-msg]
 
          [:section.section {:style {:background (if @alert-blink "darkred" "#E1C131")}} [:div.container>div.content]
           [@page]]]
         [:div
          [navbar]
          [:div.container-404
-          [:section.section [:div.text-404 "Oooops..."][:div.text-404 "Page not found..."]]]]))))
+          [:section.section [:div.text-404 "Oooops..."] [:div.text-404 "Page not found..."]]]]))))
 
 
 
@@ -279,7 +291,7 @@
   (reitit/router
     [["/" {:name        :home
            :view        #'home-page
-           :controllers [{:start (fn [_] (rf/dispatch [:view/init]))}]}]
+           :controllers [#_{:start (fn [_] (rf/dispatch [:view/init]))}]}]
      ["/about" {:name :about
                 :view #'about-page}]
      ["/logout" {:name :logout
@@ -288,12 +300,15 @@
                    :view #'register-page}]
      ["/ex" {:name :experiments
              :view #'ex/experiments}]
+     ["/projects-portfolio" {:name        :projects-portfolio
+                             :view        #'projects-portfolio-page
+                             :controllers [#_{:start (fn [_] (rf/dispatch [:view/init]))}]}]
 
      ["/google-login" {:name        :google-login
                        :view        #'home-page-from-google
                        :controllers [{:start (fn [req]
                                                (rf/dispatch [:login-google req])
-                                               (rf/dispatch [:view/init]))}]}]]))
+                                               #_(rf/dispatch [:view/init]))}]}]]))
 
 (defn start-router! []
   (rfe/start!
@@ -330,7 +345,11 @@
   (start-router!)
   (ajax/load-interceptors!)
   (mount-components)
-  (ui/register-key-handler))
+  (println "init! model and view")
+  (rf/dispatch-sync [:view/init])
+  (rf/dispatch-sync [::rp/add-keyboard-event-listener "keydown"])
+
+  #_(ui/register-key-handler))
 
 
 (comment
@@ -365,7 +384,7 @@
 
 #_(defn nav-link [uri title page]
     [:a.navbar-item
-     {:href   uri
+     {:href  uri
       :class (when (= page @(rf/subscribe [:common/page-id])) :is-active)}
      title])
 
@@ -376,9 +395,9 @@
                   [:a.navbar-item {:href "/" :style {:font-weight :bold}} "grooob.com"]
                   [:span.navbar-burger.burger
                    {:data-target :nav-menu
-                    :on-click #(swap! expanded? not)
-                    :class (when @expanded? :is-active)}
-                   [:span][:span][:span]]]
+                    :on-click    #(swap! expanded? not)
+                    :class       (when @expanded? :is-active)}
+                   [:span] [:span] [:span]]]
                  [:div#nav-menu.navbar-menu
                   {:class (when @expanded? :is-active)}
                   [:div.navbar-start
@@ -391,56 +410,56 @@
      [:div "text"]])
 
 #_(defn rect [x y w h f s sw]
-    [:rect {:x x
-            :y y
-            :rx 2
-            :ry 2
-            :width w
-            :height h
-            :fill f
-            :stroke s
+    [:rect {:x            x
+            :y            y
+            :rx           2
+            :ry           2
+            :width        w
+            :height       h
+            :fill         f
+            :stroke       s
             :stroke-width sw}])
 
 #_(defn row [x y])
 
 #_(defn grid-sub-components []
-   (let [grid-width 10
-         square-size 8
-         localShift (:shift @state)]
-         ;shift-state (* w (@state :shift))
-         ;shift-state-str (str shift-state)]
-    [:section.section>div.container>div.content
+    (let [grid-width  10
+          square-size 8
+          localShift  (:shift @state)]
+      ;shift-state (* w (@state :shift))
+      ;shift-state-str (str shift-state)]
+      [:section.section>div.container>div.content
        [:div ""] ;shift-state-str]
        [:svg {:view-box "0 0 1000 1000"
-              :width 1800
-              :height 1800}
+              :width    1800
+              :height   1800}
         (for [x (range 100) y (range 100) :let [shift (if (zero? y) (* localShift grid-width) 0)]]
           ^{:key (+ y (* x 1000))} [rect (+ shift (* grid-width x)) (* grid-width y) square-size square-size "lightgray" nil 0])
 
-        #_[:rect {:x 20 :y 50 :width 50
+        #_[:rect {:x      20 :y 50 :width 50
                   :height 50
-                  :fill "blue"}]]]))
-      ;[:line {:stroke "red" :stroke-width 1 :x1 0 :y1 25 :x2 25 :y2 100}]]]))
+                  :fill   "blue"}]]]))
+;[:line {:stroke "red" :stroke-width 1 :x1 0 :y1 25 :x2 25 :y2 100}]]]))
 
 #_(defn grid-basic []
     [:section.section>div.container>div.content
-      [:div "-->"]
-      [:svg {:view-box "0 0 100 100"
-             :width 100
-             :height 100}
-            [:rect {:width 50
-                    :height 50
-                    :fill "green"}]
-            [:rect {:x 20 :y 50 :width 50
-                    :height 50
-                    :fill "blue"}]
-            [:line {:stroke "red" :stroke-width 1 :x1 0 :y1 25 :x2 25 :y2 100}]]])
+     [:div "-->"]
+     [:svg {:view-box "0 0 100 100"
+            :width    100
+            :height   100}
+      [:rect {:width  50
+              :height 50
+              :fill   "green"}
+       [:rect {:x      20 :y 50 :width 50
+               :height 50
+               :fill   "blue"}]
+       [:line {:stroke "red" :stroke-width 1 :x1 0 :y1 25 :x2 25 :y2 100}]]]])
 
 
 
 #_(defn home-page []
     [:section.section>div.container>div.content
-     [:h3  "experiments..."]
+     [:h3 "experiments..."]
      ;[:p "here comes the grid:"]
      #_[grid-sub-components]
      #_[grid-basic]
