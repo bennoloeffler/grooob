@@ -9,6 +9,7 @@
     [re-pipe.ajax :as ajax]
     [re-pipe.experiments :as ex]
     [re-pipe.events]
+    [re-pipe.utils :as utils]
     [re-pipe.model :as model]
     [reitit.core :as reitit]
     [reitit.frontend.easy :as rfe]
@@ -16,9 +17,13 @@
     [belib.hiccup :as bh]
     [re-pipe.events-timeout]
     [re-pipe.project-ui :as ui]
-    [re-pressed.core :as rp])
+    [re-pipe.project-single-view.ui :as psv]
+    [re-pressed.core :as rp]
+    [re-pipe.playback])
   (:import goog.History
            [goog.events EventType KeyHandler]))
+
+(re-pipe.playback/load)
 
 ;(println (model/now-date-time))
 
@@ -191,7 +196,8 @@
                  [nav-link "#/" "Home" :home]
                  [nav-link "#/about" "About" :about]
                  [nav-link "#/ex" "Experiments" :experiments]
-                 [nav-link "#/projects-portfolio" "Projects" :projects-portfolio]]]
+                 [nav-link "#/projects-portfolio" "Projects" :projects-portfolio]
+                 [nav-link "#/project" "Project" :project]]]
                [:div.navbar-end
                 [:div.navbar-item.mr-3]]]))
 
@@ -226,27 +232,36 @@
     (fn []
       [:span "user: " [:strong (:identity @user)]])))
 
+(defn project-single-page []
+  (let [user-data (rf/subscribe [:user])]
+    (fn []
+      [:<>
+       #_(if @user-data
+           [:div "logged in: " [:b (:identity @user-data)]]
+           [:div "logged in: NO"])
+       [psv/project-single-view "project-single-page"]])))
+
 (defn projects-portfolio-page []
   (let [user-data (rf/subscribe [:user])]
     (fn []
       [:<>
-       (if @user-data
-         [:div "logged in: " [:b (:identity @user-data)]]
-         [:div "logged in: NO"])
+       #_(if @user-data
+           [:div "logged in: " [:b (:identity @user-data)]]
+           [:div "logged in: NO"])
 
-       [ui/logged-in-form]])))
+       [ui/projects-overview-form]])))
 
 
 (defn home-page []
   (let [user-data (rf/subscribe [:user])]
     (fn []
       [:<>
-       #_[ui/logged-in-form]
+       #_[ui/projects-overview-form]
        #_[:div
           [:h1.title "grooob.com"
            [:h4.subtitle "capacity planning without distracting details"]]]
        (if @user-data
-         [ui/logged-in-form]
+         [ui/projects-overview-form]
          [login-form])])))
 
 
@@ -255,6 +270,7 @@
    [:div "welcome back from google login..."]
    [:br] [:br]
    [home-page]])
+
 
 (defn page []
   (let [page        (rf/subscribe [:common/page])
@@ -274,7 +290,7 @@
                         ;:visibility (if @alert-msg "visible" "hidden")
                         :font-size    (if @alert-msg "20px" "5px")}} @alert-msg]
 
-         [:section.section {:style {:background (if @alert-blink "darkred" "#E1C131")}} [:div.container>div.content]
+         [:section.section {:style {:background (if @alert-blink "darkred" utils/background-color)}} [:div.container>div.content]
           [@page]]]
         [:div
          [navbar]
@@ -303,12 +319,16 @@
      ["/projects-portfolio" {:name        :projects-portfolio
                              :view        #'projects-portfolio-page
                              :controllers [#_{:start (fn [_] (rf/dispatch [:view/init]))}]}]
+     ["/project" {:name        :project
+                  :view        #'project-single-page
+                  :controllers [#_{:start (fn [_] (rf/dispatch [:view/init]))}]}]
 
      ["/google-login" {:name        :google-login
                        :view        #'home-page-from-google
                        :controllers [{:start (fn [req]
                                                (rf/dispatch [:login-google req])
                                                #_(rf/dispatch [:view/init]))}]}]]))
+
 
 (defn start-router! []
   (rfe/start!
@@ -321,6 +341,7 @@
   (println "something strange" (re-pipe.events/from-events)))
 
 (comment ; this can be done by repl...
+  (rf/dispatch [:common/navigate! :projects-portfolio])
   (println "switch to console to view this"))
 
 

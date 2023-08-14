@@ -4,7 +4,6 @@
             [reagent.dom :as rd]
             [tick.core :as t]
             [java.time :refer [LocalDate]]
-    ;[tick.alpha.api :as ta]
             [goog.events.KeyCodes :as keycodes]
             [goog.events :as events]
             [goog.object :as gobj]
@@ -14,13 +13,16 @@
             [belib.spec :as bs]
             [re-pipe.model :as model]
             [re-pipe.model-spec :as ms]
+            [re-pipe.utils :as utils]
             [belib.cal-week-year :as bc]
             [ajax.core :as ajax]
             [goog.history.EventType :as HistoryEventType]
             [time-literals.read-write]
             [luminus-transit.time :as time]
             [cognitect.transit :as transit]
-            [re-pressed.core :as rp])
+            [re-pressed.core :as rp]
+            [re-pipe.project-single-view.ui :as psv])
+
   (:import goog.History
            [goog.events EventType KeyHandler]))
 
@@ -89,10 +91,10 @@
 
       (let [now (bc/week-year-from-abs-week (+ (:min-cw @model) (:cw @cross)))]
         [:<>
-         [:a.button.is-small.m-1
-          {:on-click #(rf/dispatch [:user/add-random-user])}
-          [:span.icon>i.fas.fa-lg.fa-chart-gantt]
-          [:span "open project view"]]
+         #_[:a.button.is-small.m-1
+            {:on-click #(rf/dispatch [:user/add-random-user])}
+            [:span.icon>i.fas.fa-lg.fa-chart-gantt]
+            [:span "open project view"]]
          #_[:div (str now ", " @cross ", min-max-cw: " (:min-cw @model) ", " (:max-cw @model) ", now: " (bc/get-abs-current-week))]
          [:div (str ((vec (:projects @model)) (:project @cross)))]]))))
 
@@ -105,6 +107,7 @@
   (map #(str (first %) "-" (second %)) all-year-weeks))
 
 (comment
+  (weeks-from-abs-weeks 0 10)
   (weeks-from-abs-weeks 100 10)
   (weeks-indicators (weeks-from-abs-weeks 100 10)))
 
@@ -147,14 +150,13 @@
         model (rf/subscribe [:model/model])
         grid  (rf/subscribe [:view/grid])]
     (fn []
-
       (let [g           @grid
             c           @cross
             x           (:cw c)
             y           (:project c)
             ;_           (println "y: " y)
             ;_           (println (:projects @model))
-            p-indicator (last ((vec (:projects @model)) y))
+            p-indicator (:name ((vec (:projects @model)) y))
             ;_           (println p-indicator)
             cursor-week (bc/week-year-from-abs-week (+ x 1 (:min-cw @model)))]
 
@@ -169,27 +171,29 @@
                  :fill-opacity 0.2}]
          [:text {:x                 (+ (* x g) (/ g 2))
                  :y                 (+ (* g (+ y 2)))
-                 :fill              "black"
+                 :fill              "grey"
                  :font-family       "Nunito" #_"verdana" #_"arial" #_"titillium web"
                  :font-weight       "bold"
                  :dominant-baseline "middle"
-                 :font-size         (* 1.4 g)
-                 :writing-mode      "tb"}
+                 :font-size         (* 0.8 g)
+                 :writing-mode      "tb"
+                 :fill-opacity      0.5}
 
-          (str (first (weeks-indicators [cursor-week])))]
+          (first (weeks-indicators [cursor-week]))]
          [:text {:x                 (* g (+ 2 x))
                  :y                 (* g (+ y (/ 1 2)))
-                 :fill              "black"
+                 :fill              "grey"
                  ;:font-family       "Nunito" #_"verdana" #_"arial" #_"titillium web"
                  ;:text-rendering    "geometricPrecision"
                  :font-weight       "bold"
                  :dominant-baseline "middle"
-                 :font-size         (* 1.4 g)}
+                 :font-size         (* 0.8 g)
+                 :fill-opacity      0.5}
           (str p-indicator)]
-         [:rect#cursor {:x            (- (* g x) (* 4 g))
-                        :y            (- (* g y) (* 4 g))
-                        :width        (* 9 g)
-                        :height       (* 9 g)
+         [:rect#cursor {:x            (- (* g x) g)
+                        :y            (- (* g y) g)
+                        :width        (* 3 g)
+                        :height       (* 3 g)
                         :stroke       "white"
                         :stroke-width 0
                         :fill         "white"
@@ -237,22 +241,22 @@
                 :fill         "black"
                 :fill-opacity 0.1}]))))
 
-(defn project []
+(defn project-names []
   (let [grid           (rf/subscribe [:view/grid])
         browser-scroll (rf/subscribe [:view/browser-scroll])]
-    (fn [row start-cw len-cw project-id]
+    (fn [row start-cw len-cw name project-id]
       (let [gx (* start-cw @grid)
             gy (* row @grid)]
         (vec (cons :<> (conj (vec (map (fn [cw] [square (+ gx (* cw @grid)) gy])
                                        (range len-cw)))
-                             [:text {:x                 (+ 11 (get-svg-x-offset))
+                             [:text {:x                 (+ (get-svg-x-offset) (* 2 @grid))
                                      :y                 (+ (/ @grid 2) gy)
                                      :fill              "black"
                                      ;:font-weight       "bold"
                                      :dominant-baseline "middle"
                                      :font-size         (* 0.8 @grid)
                                      :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
-                              (str project-id)])))))))
+                              (str name)])))))))
 
 #_[:text {:x    10
           :y    gy
@@ -263,15 +267,16 @@
 (defn projects []
   (let [model (rf/subscribe [:model/model])]
     (fn []
-      (let [start-cw      (:min-cw @model)
-            projects-html (vec (cons :<> (map (fn [[idx start weeks project-id]]
-                                                [project idx (- start start-cw) weeks project-id])
-                                              (:projects @model))))]
+      (let [projects      (:projects @model)
+            start-cw      (:min-cw @model)
+            projects-html (vec (cons :<> (map (fn [{:keys [idx start-x len-x name id]}]
+                                                [project-names idx (- start-x start-cw) len-x name id])
+                                              projects)))]
         ;(pprint start-cw)
         ;(pprint projects-html)
         projects-html))))
 
-(declare scroll-fn)
+#_(declare scroll-fn)
 
 (defn cross-visible
   "returns x and y of the cross outside the
@@ -316,14 +321,15 @@
 (def start-dragging (atom nil))
 
 (defn get-x-y-vec [event]
-  (let [xe   (.-pageX event)
-        ye   (.-pageY event)
-        svg  (.getElementById js/document "svgElement")
-        rect (.getBoundingClientRect svg)
-        left (.-left rect)
-        top  (.-top rect)
-        x    (- xe left)
-        y    (- ye top)]
+  (let [doc-offset (.-scrollTop (.-documentElement js/document))
+        xe         (.-pageX event)
+        ye         (.-pageY event)
+        svg        (.getElementById js/document "svgElement")
+        rect       (.getBoundingClientRect svg)
+        left       (.-left rect)
+        top        (.-top rect)
+        x          (- xe left)
+        y          (- ye top doc-offset)]
     {:x x :y y}))
 
 ;; TODO set the listeners to the right div
@@ -390,31 +396,10 @@
         (reset! shift-down false)))
 
 
-#_(defn register-key-handler []
-    ;; sets up the event listener
-    (capture-key {;keycodes/ENTER           #(println "ENTER")
-                  #_keycodes/PLUS_SIGN 187 #(do (rf/dispatch [:view/zoom 1.1])
-                                                #_(rf/dispatch [:view/cross-visible]))
-                  #_keycodes/SEMICOLON 189 #(do (rf/dispatch [:view/zoom 0.9])
-                                                #_(rf/dispatch [:view/cross-visible]))
-                  keycodes/S               #(rf/dispatch [:model/save])
-                  keycodes/LEFT            #(if @shift-down
-                                              (rf/dispatch [:view/project-move -1])
-                                              (do (rf/dispatch [:view/cross-move {:cw (- 1) :project 0}])
-                                                  (rf/dispatch [:view/cross-visible])))
-                  keycodes/RIGHT           #(if @shift-down
-                                              (rf/dispatch [:view/project-move 1])
-                                              (do (rf/dispatch [:view/cross-move {:cw 1 :project 0}])
-                                                  (rf/dispatch [:view/cross-visible])))
-                  keycodes/UP              #(do (rf/dispatch [:view/cross-move {:cw 0 :project (- 1)}])
-                                                (rf/dispatch [:view/cross-visible]))
-                  keycodes/DOWN            #(do (rf/dispatch [:view/cross-move {:cw 0 :project 1}])
-                                                (rf/dispatch [:view/cross-visible]))}))
 
 
-(defn grid+cross []
-  (let [;size (rf/subscribe [:view/size])
-        browser-size   (rf/subscribe [:view/browser-size])
+(defn projects+cross []
+  (let [browser-size   (rf/subscribe [:view/browser-size])
         browser-scroll (rf/subscribe [:view/browser-scroll])
         grid           (rf/subscribe [:view/grid])
         m              (rf/subscribe [:model/model])
@@ -428,11 +413,6 @@
             div            (.getElementById js/document "divContainer")
             svg            (.getElementById js/document "svgElement")
             body           (.-body js/document)
-            ; todo move to initialisation code
-            _              (when div #_(and div (not @registered)) (events/listen div
-                                                                                  EventType.SCROLL #_(-> KeyHandler .-EventType .-KEY)
-                                                                                  scroll-fn)
-                                                                   (reset! registered true))
             ;_ (.log js/console svg)
             bcr-body       (if body (.getBoundingClientRect body) svg-offset-x)
             bcr-svg        (if svg (.getBoundingClientRect svg) svg-offset-x)
@@ -488,7 +468,11 @@
           [projects]
           [weeks]
           [cursor]
-          [:circle {:cx 0 :cy 0 :r 5 :fill "red"}]
+          [:circle {:cx           0 :cy 0 :r 25
+                    :stroke       "white"
+                    :stroke-width 1
+                    :fill-opacity 0.7
+                    :fill         utils/background-color}]
           (t svg-offset-x (+ doc-offset)
              ;"grid" @grid
              ;"cross" @cross-data
@@ -528,34 +512,13 @@
                                                    div-vis-width
                                                    div-vis-height))]
 
-          [:circle {:cx x-px :cy y-px :r 5 :fill "red"}]]]))))
+          [:circle {:cx           x-px :cy y-px
+                    :r            25
+                    :stroke       "white"
+                    :stroke-width 1
+                    :fill-opacity 0.7
+                    :fill         utils/background-color}]]]))))
 
-
-(defn render-logged-in-form []
-  (fn [id]
-    [:<>
-     [:br]
-     [cross-pos]
-     [grid+cross]]))
-
-{;keycodes/ENTER           #(println "ENTER")
- #_keycodes/PLUS_SIGN 187 #(do (rf/dispatch [:view/zoom 1.1])
-                               #_(rf/dispatch [:view/cross-visible]))
- #_keycodes/SEMICOLON 189 #(do (rf/dispatch [:view/zoom 0.9])
-                               #_(rf/dispatch [:view/cross-visible]))
- keycodes/S               #(rf/dispatch [:model/save])
- keycodes/LEFT            #(if nil #_@shift-down
-                             (rf/dispatch [:view/project-move -1])
-                             (do (rf/dispatch [:view/cross-move {:cw (- 1) :project 0}])
-                                 (rf/dispatch [:view/cross-visible])))
- keycodes/RIGHT           #(if nil #_@shift-down
-                             (rf/dispatch [:view/project-move 1])
-                             (do (rf/dispatch [:view/cross-move {:cw 1 :project 0}])
-                                 (rf/dispatch [:view/cross-visible])))
- keycodes/UP              #(do (rf/dispatch [:view/cross-move {:cw 0 :project (- 1)}])
-                               (rf/dispatch [:view/cross-visible]))
- keycodes/DOWN            #(do (rf/dispatch [:view/cross-move {:cw 0 :project 1}])
-                               (rf/dispatch [:view/cross-visible]))}
 
 (def project-view-keydown-rules
   {:event-keys [
@@ -607,7 +570,11 @@
                 [[:view/zoom 1.1]
                  ;; will be triggered if
                  [{:keyCode #_keycodes/PLUS_SIGN 187}] ; PLUS_SIGN does not work?
-                 [{:keyCode keycodes/Z}]]]
+                 [{:keyCode keycodes/Z}]]
+
+                [[:common/navigate! :project nil nil]
+                 ;; will be triggered if
+                 [{:keyCode keycodes/P}]]]
 
 
 
@@ -648,16 +615,45 @@
        :ctrlKey true}]})
 ;; is pressed
 
-(defn logged-in-form []
-  (let [key-up-listener   (atom nil)
-        key-down-listener (atom nil)]
+(def debounce-scroll-fn
+  (bb/debounced-now #_goog.functions.debounce
+    (fn dispatch-browser-scroll [event]
+      ;(cljs.pprint/pprint (b/js-obj->clj-map event))
+      (rf/dispatch [:view/browser-scroll]))
+    100))
+
+(defn scroll-fn [event]
+  ;(println "scroll" event)
+  (debounce-scroll-fn event)
+  ;(cljs.pprint/pprint (b/js-obj->clj-map event))
+  #_(goog.functions.debounce #(rf/dispatch [:view/browser-scroll]) 300)
+  #_(rf/dispatch [:view/browser-scroll]))
+
+#_(events/listen js/window
+                 EventType.SCROLL
+                 scroll-fn)
+
+
+(defn render-projects-overview-form []
+  (fn [id]
+    [:<>
+     ;[:br]
+     ;[cross-pos]
+     [projects+cross]]))
+
+(defn projects-overview-form []
+  (let [scroll-listener (atom nil)]
     (reagent/create-class
       {:display-name           "projects-view=logged-in-form"
-       :reagent-render         render-logged-in-form
+       :reagent-render         render-projects-overview-form
        :component-did-mount    (fn []
-                                 (println "Projects view mounted. Install key listeners.")
+                                 (println "Projects view mounted. Install event listeners.")
                                  (rf/dispatch [::rp/set-keydown-rules
                                                project-view-keydown-rules])
+                                 (reset! scroll-listener (events/listen (.getElementById js/document "divContainer")
+                                                                        EventType.SCROLL
+                                                                        scroll-fn))
+
                                  #_(let [kdl (events/listen js/window
                                                             EventType.KEYDOWN
                                                             (fn [key-press]
@@ -670,11 +666,22 @@
                                      (reset! key-up-listener kul)))
 
        :component-will-unmount (fn []
-                                 (println "Projects view will unmount. Uninstall key listeners.")
+                                 (println "Projects view will unmount. Uninstall event listeners.")
                                  (rf/dispatch [::rp/set-keydown-rules
                                                {}])
-                                 #_(events/unlistenByKey @key-down-listener)
+                                 (events/unlistenByKey @scroll-listener)
                                  #_(events/unlistenByKey @key-up-listener))})))
+
+#_(defn project-form []
+    (let [cross   (rf/subscribe [:view/cross])
+          model   (rf/subscribe [:model/model])
+          project (rf/subscribe [:model/current-project])]
+      (fn []
+        [:<>
+         [:div "project: " (str (last (get (vec (:projects @model)) (:project @cross))))]
+         ;[:pre (with-out-str (pprint @model))]
+         [:pre (with-out-str (pprint @project))]
+         [psv/project-single-view "project-form"]])))
 
 (comment
   (def l (events/listen js/window
@@ -694,10 +701,10 @@
   (fn [cofx _]
     {:db (-> (:db cofx)
              (assoc-in [:view :cross] {:project 0 :cw 0})
-             (assoc-in [:view :size] {:x 2000 :y 1000})
+             ;(assoc-in [:view :size] {:x 2000 :y 1000})
              (assoc-in [:view :grid] grid)
-             (assoc-in [:view :offset-pr] 0)
-             (assoc-in [:view :offset-cw] 0)
+             ;(assoc-in [:view :offset-pr] 0)
+             ;(assoc-in [:view :offset-cw] 0)
              (assoc-in [:model] (create-model)))}))
 
 #_(rf/reg-event-fx
@@ -830,23 +837,6 @@
                EventType.RESIZE
                resize-fn)
 
-(def debounce-scroll-fn
-  (bb/debounced-now #_goog.functions.debounce
-    (fn dispatch-browser-scroll [event]
-      ;(cljs.pprint/pprint (b/js-obj->clj-map event))
-      (rf/dispatch [:view/browser-scroll]))
-    400))
-
-(defn scroll-fn [event]
-  ;(println "scroll" event)
-  (debounce-scroll-fn event)
-  ;(cljs.pprint/pprint (b/js-obj->clj-map event))
-  #_(goog.functions.debounce #(rf/dispatch [:view/browser-scroll]) 300)
-  #_(rf/dispatch [:view/browser-scroll]))
-
-(events/listen js/window
-               EventType.SCROLL
-               scroll-fn)
 
 
 (rf/reg-sub
@@ -886,6 +876,20 @@
   :model/model
   (fn [db _]
     (model/view-model (:model db))))
+
+(rf/reg-sub
+  :model/current-project
+  (fn [db _]
+    (let [current-project-key (-> (:model db)
+                                  :g/projects
+                                  keys
+                                  vec
+                                  (get (-> db :view :cross :project)))
+          current-project     (-> (:model db)
+                                  :g/projects
+                                  (get current-project-key))]
+      (model/current-project current-project))))
+
 
 (rf/reg-sub
   :view/grid

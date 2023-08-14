@@ -152,19 +152,32 @@
   (< (bd/duration-in-days (:g/start task)
                           (:g/end task)) (* 5 365)))
 
+(def sequence-num (atom 0))
+(defn next-sequence-num []
+  (swap! sequence-num inc))
+
+(defn gen-sequnce-num []
+  (gen/fmap (fn [dummy] (next-sequence-num))
+            (s/gen pos-int?)))
+
+(s/def :g/sequence-num
+  (s/with-gen (s/and int? pos?)
+              gen-sequnce-num))
+
 (s/def :g/task (s/and
                  (s/keys :req [:g/entity-id
                                :g/start
                                :g/end
                                :g/resource-id
-                               :g/capacity-need])
+                               :g/capacity-need
+                               :g/sequence-num])
                  shorter-than-5-years?
                  ;#(jt/after? (:g/start %) bcw/first-date)
                  ;#(jt/before? (:g/end %) bcw/last-date)
                  start-before-end?))
 
-;; TODO
-;   integration phase is missing... as task? yes. and an abstract ressource called eg IP? yes...
+;; TODO:
+;;  totally remove integration phase
 
 (tests
   (->> (gen/sample (s/gen :g/task) 100)

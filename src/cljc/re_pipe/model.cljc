@@ -12,7 +12,8 @@
     [re-pipe.model-spec :as ms :refer [example-model get-rand-project-id projects-ids-range resources-ids-range]]
     [clojure.spec.alpha :as s]
     [hyperfiddle.rcf :refer [tests]]
-    [clojure.test.check.generators :as gen]))
+    [clojure.test.check.generators :as gen]
+    [playback.core]))
 
 
 
@@ -133,6 +134,35 @@
            (new-model "a-model")
            "pip"
            20)) := true)
+
+
+(defn sorted-map-by-key [m sort-by-key]
+  (into (sorted-map-by (fn [key1 key2]
+                         (- (compare [(get-in m [key2 sort-by-key]) key2]
+                                     [(get-in m [key1 sort-by-key]) key1]))))
+        m))
+
+(comment
+  (type (sorted-map-by-key {} :nix))
+  (sorted-map-by-key {:A {:g/sequence-num 1 :val 23}
+                      :B {:g/sequence-num 2 :val 22}
+                      :C {:g/sequence-num 2 :val 53}
+                      :D {:g/sequence-num 5 :val 73}
+                      :E {:g/sequence-num 1 :val 10}
+                      :F {:g/sequence-num 1 :val 11}}
+                     :g/sequence-num)
+  (let [results {:A {:sequence-num 1 :val 23}
+                 :B {:sequence-num 2 :val 22}
+                 :C {:sequence-num 2 :val 53}
+                 :D {:sequence-num 5 :val 73}
+                 :E {:sequence-num 1 :val 10}
+                 :F {:sequence-num 1 :val 11}}]
+    (into (sorted-map-by (fn [key1 key2]
+                           (compare [(get-in results [key2 :sequence-num]) key2]
+                                    [(get-in results [key1 :sequence-num]) key1])))
+
+
+          results)))
 
 (defn add-project
   [model project-name end pipeline]
@@ -499,7 +529,7 @@
 #_(require '[debux.core :refer [dbg dbgn]]
            '[erdos.assert :as ea])
 
-
+; TODO is not sequence stable!
 (defn move-task [m project-id task-id days]
   (if (= days 0)
     m ; do nothing
@@ -510,7 +540,27 @@
           days      (Math/abs days)
           t         (update t :g/start #(direction % days))
           t         (update t :g/end #(direction % days))]
-      (add-task m project-id t))))
+      (-> m
+          (add-task project-id t)
+          (update-project-start-end project-id)))))
+
+; DOES NOT WORK
+#_(defn move-task-stable [m project-id task-id days]
+    (if (= days 0)
+      m ; do nothing
+      (let [tasks   (keys (get-in m [:g/projects project-id :g/tasks]))
+            m-moved (reduce
+                      (fn [acc val]
+                        (move-task
+                          acc
+                          project-id
+                          val (if (= val task-id)
+                                days
+                                0)))
+                      m tasks)]
+
+        ;(pprint (view-model m-moved))
+        m-moved)))
 
 (declare view-model)
 (defn move-project [m project-id days]
@@ -622,24 +672,57 @@
 ;; a project has a name, a start-cw and a len-cw
 
 (defn view-model [model]
+  (let [vals-of-projects (map #(conj (vec (:g/start-end-project-cw %))
+                                     (:g/name %)
+                                     (:g/entity-id %))
+                              (vals (:g/projects model)))
+        projects         (map-indexed (fn [idx e] (let [e     e
+                                                        start (-> e first first)
+                                                        end   (first (second e))]
+                                                    {:idx idx :start-x start :len-x (- end start) :name (last e) :id (last e)}))
+                                      vals-of-projects)]
+    {:min-cw   (->> model
+                    :g/start-end-model-cw
+                    first
+                    first)
+     :max-cw   (->> model
+                    :g/start-end-model-cw
+                    second
+                    first)
+     :projects projects}))
 
-  (let [model {:min-cw   (->> model
-                              :g/start-end-model-cw
-                              first
-                              first)
-               :max-cw   (->> model
-                              :g/start-end-model-cw
-                              second
-                              first)
-               :projects (map-indexed (fn [i e] (let [start (-> e first first)
-                                                      end   (first (second e))]
-                                                  [i start (- end start) (last e)]))
-                                      (map #(conj (vec (:g/start-end-project-cw %)) (:g/entity-id %))
-                                           (vals (:g/projects model))))}]
-    ;(pprint model)
-    model))
+
+
+(defn current-project
+  "gives a model that looks like:
+  [idx start-x len-x name id]
+  where
+  :idx is an index, starting at 0
+  :start-x is the beginning of the element
+  :len-x is the len of the element
+  :name is the name of the element
+  :id is the id of the corresponding original element"
+  [project]
+  (let [;project (sorted-map-by-sequence project)
+        task-fn (fn [idx task]
+                  {:idx          idx ; TODO check, if id of task would be better
+                   :start-x      (first (:g/start-cw task)) ;start
+                   :len-x        (- (first (:g/end-cw task))
+                                    (first (:g/start-cw task))) ;len
+                   :name         (:g/resource-id task)
+                   :sequence-num (:g/sequence-num task)
+                   :id           (:g/entity-id task)})] ; ressource
+    {:min-cw   (first (first (:g/start-end-project-cw project)))
+     :max-cw   (first (second (:g/start-end-project-cw project)))
+     :projects (vec (sort-by :sequence-num (map-indexed task-fn
+                                                        (vals (:g/tasks project)))))
+     #_(vec (sort-by :sequence-num (map-indexed task-fn
+                                                (vals (:g/tasks project)))))}))
+;:original project}))
 
 (comment
+  (let [{:person/keys [ant]} {:person/ant 17}]
+    (println ant))
   (def m {:g/name               "a-model",
           :g/projects           {"new-proj" {:g/entity-id            "new-proj",
                                              :g/name                 "new-proj",

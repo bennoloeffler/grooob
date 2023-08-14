@@ -16,15 +16,24 @@ View everything in Realtime.
 ## TODOs, next steps
 
 - ok: s: send an example model to server and save it to data-hike
-- read about how to init data in re-frame
+- ok: read about how to init data in re-frame
     - https://ericnormand.me/guide/re-frame-lifecycle
     - https://ericnormand.me/guide/database-structure-in-re-frame#initialization
-- have the project window initialized only once
-- add the key handeler to the project window and deregister
+- ok: have the project window initialized only once
+- ok: add the key handeler to the project window and deregister
+- create a module grid-view with parameters
+    - x-axis
+    - y-axis
+    - data
+    - data-details
+
+- create subdirs for moduls
+- switch to single project window
 - save data model to localstorage as basis for load and project window
 - show "second window" with
     - load details
     - project details
+- :view/cross-visible does not work in safari
 
 ## Features / Releases
 

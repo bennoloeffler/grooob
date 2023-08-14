@@ -57,7 +57,9 @@
 
                  [tick "0.6.2"]
                  [net.cgrand/macrovich "0.2.1"]
-                 [luminus-transit "0.1.6"]]
+                 [luminus-transit "0.1.6"]
+
+                 [com.github.gnl/playback "0.3.10"]]
 
 
   :min-lein-version "2.0.0"
