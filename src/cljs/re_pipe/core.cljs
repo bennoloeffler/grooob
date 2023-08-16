@@ -16,8 +16,9 @@
     [clojure.string :as string]
     [belib.hiccup :as bh]
     [re-pipe.events-timeout]
-    [re-pipe.project-ui :as ui]
+    #_[re-pipe.project-ui :as ui]
     [re-pipe.project-single-view.ui :as psv]
+    [re-pipe.projects-overview.ui :as pov]
     [re-pressed.core :as rp]
     [re-pipe.playback])
   (:import goog.History
@@ -239,7 +240,7 @@
        #_(if @user-data
            [:div "logged in: " [:b (:identity @user-data)]]
            [:div "logged in: NO"])
-       [psv/project-single-view "project-single-page"]])))
+       [psv/project-single-view "project-single-form"]])))
 
 (defn projects-portfolio-page []
   (let [user-data (rf/subscribe [:user])]
@@ -249,7 +250,7 @@
            [:div "logged in: " [:b (:identity @user-data)]]
            [:div "logged in: NO"])
 
-       [ui/projects-overview-form]])))
+       [pov/projects-overview-form "projects-overview-form"]])))
 
 
 (defn home-page []
@@ -261,7 +262,7 @@
           [:h1.title "grooob.com"
            [:h4.subtitle "capacity planning without distracting details"]]]
        (if @user-data
-         [ui/projects-overview-form]
+         [pov/projects-overview-form "projects-overview-form"] #_[ui/projects-overview-form]
          [login-form])])))
 
 
@@ -362,12 +363,19 @@
   (rf/clear-subscription-cache!)
   (rdom/render [#'page] (.getElementById js/document "app")))
 
+(rf/reg-event-fx
+  :model/init
+  (fn [cofx _]
+    {:db (-> (:db cofx)
+             (assoc-in [:model] (model/generate-random-model 30)))}))
+
 (defn init! []
   (start-router!)
   (ajax/load-interceptors!)
   (mount-components)
   (println "init! model and view")
-  (rf/dispatch-sync [:view/init])
+  (rf/dispatch-sync [:model/init])
+  ;(rf/dispatch-sync [:view/init])
   (rf/dispatch-sync [::rp/add-keyboard-event-listener "keydown"])
 
   #_(ui/register-key-handler))

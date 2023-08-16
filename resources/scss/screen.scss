@@ -152,3 +152,10 @@ $link: $dark-blue;
   -ms-transform: rotate(45deg);
   transform: rotate(45deg);
 }
+
+.svg-non-select {
+   -webkit-user-select: none;
+   -moz-user-select: none;
+   -ms-user-select: none;
+   user-select: none;
+}

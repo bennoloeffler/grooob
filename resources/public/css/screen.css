@@ -8034,3 +8034,9 @@ a.has-text-danger-dark:hover, a.has-text-danger-dark:focus {
   -webkit-transform: rotate(45deg);
   -ms-transform: rotate(45deg);
   transform: rotate(45deg); }
+
+.svg-non-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none; }
