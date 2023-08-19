@@ -41,16 +41,12 @@
       (fn [] [:div (str "params: " x)])))
 
 (defn project-single-view [component-id]
-  (let [;cross   (rf/subscribe [:view/cross])
-        ;model   (rf/subscribe [:model/model])
-        ;; TODO this :projects-overview-form s path is HARDCODED!
-        _project (rf/subscribe [:model/current-project "projects-overview-form"])
-        ;id      (b/next-local-id)
-        #_component-id #_(str "project-single-view-" id)]
+  (let [;; TODO this :projects-overview-form s path is HARDCODED!
+        _project (rf/subscribe [:model/current-project "projects-overview-form"])]
     (rf/dispatch-sync [:grid-view/init component-id])
     (fn []
       [:<>
-       ;[:div "project-single-view"]
+       [:div "project single view: " (:name @_project)]
        #_[:div "project: " (str (last (get (vec (:projects @model)) (:project @cross))))]
        ;[:pre (with-out-str (pprint @model))]
        ;[:pre (with-out-str (pprint @project))]

@@ -24,14 +24,27 @@
   (:import goog.History
            [goog.events EventType KeyHandler]))
 
-(re-pipe.playback/load)
+; TODO: needed or is requiring enough?
+;(re-pipe.playback/load)
 
 ;(println (model/now-date-time))
 
+; REFRAME docs
+; https://github.com/Day8/re-frame/blob/2ccd95c397927c877fd184b038e4c754221a502d/docs/Effects.md
+
+; REFRAME from Eric Normand
 ; https://ericnormand.me/guide/re-frame-building-blocks
+
+; REACTIVE from db to ui
 ; postgres notifications: reactive... https://yogthos.net/posts/2016-11-05-LuminusPostgresNotifications.html
+
+; TYPICAL Problem
 ; local state & laggy input: https://github.com/day8/re-frame/blob/master/docs/FAQs/laggy-input.md
-; components: re-com
+
+; COMPONENTS - but not : re-com
+; Demo: https://re-com.day8.com.au/
+; Doc: https://github.com/day8/re-com
+
 
 (defn change-once-after
   "Returns a reagent/atom with value before.
@@ -367,7 +380,8 @@
   :model/init
   (fn [cofx _]
     {:db (-> (:db cofx)
-             (assoc-in [:model] (model/generate-random-model 30)))}))
+             (assoc-in [:model]
+                       (model/generate-random-model 100)))}))
 
 (defn init! []
   (start-router!)
@@ -376,7 +390,8 @@
   (println "init! model and view")
   (rf/dispatch-sync [:model/init])
   ;(rf/dispatch-sync [:view/init])
-  (rf/dispatch-sync [::rp/add-keyboard-event-listener "keydown"])
+  (rf/dispatch-sync
+    [::rp/add-keyboard-event-listener "keydown"])
 
   #_(ui/register-key-handler))
 

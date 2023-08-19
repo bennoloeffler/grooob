@@ -19,7 +19,7 @@
 ; #>< _   ; reference currently selected portal data #><[]
 ; #>(defn ; makes functions replay with cached data on reload
 ; #>(defmethod,
-; #>(>defn ;guardrails
+; #>(>defn ;guardrails see:
 (comment
   (require 'playback.preload) ; open the portal
   #>(defn make-something [a b]

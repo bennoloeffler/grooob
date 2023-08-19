@@ -314,7 +314,7 @@
                  _model
                  key-down-rules]
 
-  (if (= (:projects @_model) [])
+  (if (or (not @_model) (= (:projects @_model) []))
     [:div (str "no model for component: " component-id)]
     (let [scroll-listener (atom nil)
           m-up-listener   (atom nil)

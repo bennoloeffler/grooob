@@ -9,19 +9,36 @@ View everything in Realtime.
 
 ## BUGs
 
-- focus lost: disable mouse listener outside of projects view
 - fix: login success:  {:identity nil}
 - fix: only one way with proper error message: google user may override normal login
 
 ## TODOs, next steps
 
-- ok: s: send an example model to server and save it to data-hike
+- model
+    - make the api generate proper IDs inside the model (project, task, resource)
+    - make the api generate proper sequence-num and have a move-up and move-down for projects and resources
+    - make the tasks appear in the sequence of the ressources
+    - remove pipeline in the model
+    - check, if idx in view model is needed - use id instead for
+- view
+    - make a project task details view.
+    - make the load view (in weeks and in months)
+    - make an simple capa-editor (maybe instaparse?)
+    - make a simple template editor - a template is just a normal project,
+      that may be copied but dos not get capacity calced.
+        - every project may me marked as "not relevant for capa"
+        - it is greyed off
+        - all irrelevant projects may be made invisible
+        - those project may be copied and worked on normally
+- server
+    - send an example model to server and save it to data-hike
+
 - ok: read about how to init data in re-frame
     - https://ericnormand.me/guide/re-frame-lifecycle
     - https://ericnormand.me/guide/database-structure-in-re-frame#initialization
 - ok: have the project window initialized only once
 - ok: add the key handeler to the project window and deregister
-- create a module grid-view with parameters
+- ok: create a module grid-view with parameters
     - x-axis
     - y-axis
     - data

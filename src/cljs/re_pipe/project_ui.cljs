@@ -26,32 +26,31 @@
   (:import goog.History
            [goog.events EventType KeyHandler]))
 
+; https://tech.toryanderson.com/2020/05/23/adding-custom-transit-handlers-to-re-frame-http-fx-ajax-requests/
+; https://github.com/cognitect/transit-cljs/wiki/Getting-Started
+; https://gist.github.com/jdf-id-au/2e91fb63ce396b722c1d6770154f1815
+; https://github.com/henryw374/time-literals
 
-(time-literals.read-write/print-time-literals-cljs!)
+#_(time-literals.read-write/print-time-literals-cljs!)
 #_(cljs.reader/register-tag-parser! time-literals.read-write/tags)
 #_(doall (map #(cljs.reader/register-tag-parser! (first %) (second %)) time-literals.read-write/tags))
-(cljs.reader/register-tag-parser! 'time/date (time-literals.read-write/tags 'time/date))
+#_(cljs.reader/register-tag-parser! 'time/date (time-literals.read-write/tags 'time/date))
 
 #_(clojure.edn/read-string {:readers time-literals.read-write/tags} "#time/date \"2011-01-01\"")
 ;(clojure.edn/read-string "#time/date \"2011-01-01\"")
 ;(println (t/date "2011-01-01"))
 
-(comment
-  (time-literals.read-write/print-time-literals-cljs!)
-  (time-literals.read-write/print-time-literals-clj!)
-  (map #(cljs.reader/register-tag-parser! (first %) (second %)) time-literals.read-write/tags)
+#_(comment
+    (time-literals.read-write/print-time-literals-cljs!)
+    (time-literals.read-write/print-time-literals-clj!)
+    (map #(cljs.reader/register-tag-parser! (first %) (second %)) time-literals.read-write/tags)
 
-  (time-literals.read-write/print-time-literals-cljs!)
-  (cljs.reader/register-tag-parser! 'time/date (time-literals.read-write/tags 'time/date))
-  (def d #time/date "2039-01-01")
-  (time-literals.read-write/tags 'time/period))
-
-
+    (time-literals.read-write/print-time-literals-cljs!)
+    (cljs.reader/register-tag-parser! 'time/date (time-literals.read-write/tags 'time/date))
+    (def d #time/date "2039-01-01")
+    (time-literals.read-write/tags 'time/period))
 
 
-(comment
-  (bs/validate :g/model ms/example-model)
-  (.open js/window "#/"))
 
 #_(defn scrollCursorVisible []
     (let [cursor (.getElementById js/document "cursor")]
@@ -111,152 +110,152 @@
     (weeks-from-abs-weeks 100 10)
     (weeks-indicators (weeks-from-abs-weeks 100 10)))
 
-(defn week [indicator cw g y]
-  [:text {:x                 (+ (* cw g) (/ g 2))
-          :y                 (+ y g)
-          :fill              "black"
-          ;:font-weight       "bold"
-          :dominant-baseline "middle"
-          :font-size         (* 0.8 g)
-          :writing-mode      "tb"}
+#_(defn week [indicator cw g y]
+    [:text {:x                 (+ (* cw g) (/ g 2))
+            :y                 (+ y g)
+            :fill              "black"
+            ;:font-weight       "bold"
+            :dominant-baseline "middle"
+            :font-size         (* 0.8 g)
+            :writing-mode      "tb"}
 
-   (str indicator)])
+     (str indicator)])
 
-(defn weeks []
-  (let [grid  (rf/subscribe [:view/grid])
-        model (rf/subscribe [:model/model])]
-    (fn []
-      (let [m @model
-            g @grid
-            x (- (:max-cw m) (:min-cw m))
-            p (:projects m)
-            i (weeks-indicators (weeks-from-abs-weeks (:min-cw m) x))
-            y (* g (count p))]
-        (vec (cons :<> (vec (map-indexed (fn [idx e] [week e idx g y]) i))))
-        #_(vec (cons :<> (conj (vec (map (fn [cw] [square (+ gx (* cw @grid)) gy])
+#_(defn weeks []
+    (let [grid  (rf/subscribe [:view/grid])
+          model (rf/subscribe [:model/model])]
+      (fn []
+        (let [m @model
+              g @grid
+              x (- (:max-cw m) (:min-cw m))
+              p (:projects m)
+              i (weeks-indicators (weeks-from-abs-weeks (:min-cw m) x))
+              y (* g (count p))]
+          (vec (cons :<> (vec (map-indexed (fn [idx e] [week e idx g y]) i))))
+          #_(vec (cons :<> (conj (vec (map (fn [cw] [square (+ gx (* cw @grid)) gy])
+                                           (range len-cw)))
+                                 [:text {:x                 (+ 11 (get-svg-x-offset))
+                                         :y                 (+ (/ @grid 2) gy)
+                                         :fill              "black"
+                                         :font-weight       "bold"
+                                         :dominant-baseline "middle"
+                                         :font-size         (* 0.9 @grid)
+                                         :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
+                                  (str project-id)])))))))
+
+
+#_(defn cursor []
+    (let [cross (rf/subscribe [:view/cross])
+          model (rf/subscribe [:model/model])
+          grid  (rf/subscribe [:view/grid])]
+      (fn []
+        (let [g           @grid
+              c           @cross
+              x           (:cw c)
+              y           (:project c)
+              ;_           (println "y: " y)
+              ;_           (println (:projects @model))
+              p-indicator (:name ((vec (:projects @model)) y))
+              ;_           (println p-indicator)
+              cursor-week (bc/week-year-from-abs-week (+ x 1 (:min-cw @model)))]
+
+          [:<>
+           [:rect {:x            (* g x)
+                   :y            (* g y)
+                   :width        g
+                   :height       g
+                   :stroke       "black"
+                   :stroke-width 2
+                   :fill         "white"
+                   :fill-opacity 0.2}]
+           [:text {:x                 (+ (* x g) (/ g 2))
+                   :y                 (+ (* g (+ y 2)))
+                   :fill              "grey"
+                   :font-family       "Nunito" #_"verdana" #_"arial" #_"titillium web"
+                   :font-weight       "bold"
+                   :dominant-baseline "middle"
+                   :font-size         (* 0.8 g)
+                   :writing-mode      "tb"
+                   :fill-opacity      0.5}
+
+            (first (weeks-indicators [cursor-week]))]
+           [:text {:x                 (* g (+ 2 x))
+                   :y                 (* g (+ y (/ 1 2)))
+                   :fill              "grey"
+                   ;:font-family       "Nunito" #_"verdana" #_"arial" #_"titillium web"
+                   ;:text-rendering    "geometricPrecision"
+                   :font-weight       "bold"
+                   :dominant-baseline "middle"
+                   :font-size         (* 0.8 g)
+                   :fill-opacity      0.5}
+            (str p-indicator)]
+           [:rect#cursor {:x            (- (* g x) g)
+                          :y            (- (* g y) g)
+                          :width        (* 3 g)
+                          :height       (* 3 g)
+                          :stroke       "white"
+                          :stroke-width 0
+                          :fill         "white"
+                          :fill-opacity 0.0}]]))))
+#_(defn cross []
+    (let [cross (rf/subscribe [:view/cross])
+          model (rf/subscribe [:model/model])
+          grid  (rf/subscribe [:view/grid])]
+      (fn []
+
+        (let [g      @grid
+              c      @cross
+              g-half (/ g 2)
+              x      (:cw c)
+              y      (:project c)
+              size-x (* g (- (:max-cw @model) (:min-cw @model)))
+              size-y (* g (+ 5 (count (:projects @model))))]
+          [:<>
+           [:line {:x1             (+ g-half (* g x))
+                   :y1             0
+                   :x2             (+ g-half (* g x))
+                   :y2             size-y
+                   :stroke         "white"
+                   :stroke-width   (/ g 2)
+                   :stroke-opacity 0.3}]
+           [:line {:x1             0
+                   :y1             (+ g-half (* g y))
+                   :x2             size-x
+                   :y2             (+ g-half (* g y))
+                   :stroke         "white"
+                   :stroke-width   (/ g 2)
+                   :stroke-opacity 0.3}]]))))
+
+
+#_(defn square []
+    (let [grid (rf/subscribe [:view/grid])]
+      (fn [x y]
+        (let [g @grid]
+          [:rect {:x            x
+                  :y            y
+                  :width        g
+                  :height       g
+                  :stroke       "white"
+                  :stroke-width 1
+                  :fill         "black"
+                  :fill-opacity 0.1}]))))
+
+#_(defn project-names []
+    (let [grid           (rf/subscribe [:view/grid])
+          browser-scroll (rf/subscribe [:view/browser-scroll])]
+      (fn [row start-cw len-cw name project-id]
+        (let [gx (* start-cw @grid)
+              gy (* row @grid)]
+          (vec (cons :<> (conj (vec (map (fn [cw] [square (+ gx (* cw @grid)) gy])
                                          (range len-cw)))
-                               [:text {:x                 (+ 11 (get-svg-x-offset))
+                               [:text {:x                 (+ (get-svg-x-offset) (* 2 @grid))
                                        :y                 (+ (/ @grid 2) gy)
                                        :fill              "black"
-                                       :font-weight       "bold"
+                                       ;:font-weight       "bold"
                                        :dominant-baseline "middle"
-                                       :font-size         (* 0.9 @grid)
+                                       :font-size         (* 0.8 @grid)
                                        :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
-                                (str project-id)])))))))
-
-
-(defn cursor []
-  (let [cross (rf/subscribe [:view/cross])
-        model (rf/subscribe [:model/model])
-        grid  (rf/subscribe [:view/grid])]
-    (fn []
-      (let [g           @grid
-            c           @cross
-            x           (:cw c)
-            y           (:project c)
-            ;_           (println "y: " y)
-            ;_           (println (:projects @model))
-            p-indicator (:name ((vec (:projects @model)) y))
-            ;_           (println p-indicator)
-            cursor-week (bc/week-year-from-abs-week (+ x 1 (:min-cw @model)))]
-
-        [:<>
-         [:rect {:x            (* g x)
-                 :y            (* g y)
-                 :width        g
-                 :height       g
-                 :stroke       "black"
-                 :stroke-width 2
-                 :fill         "white"
-                 :fill-opacity 0.2}]
-         [:text {:x                 (+ (* x g) (/ g 2))
-                 :y                 (+ (* g (+ y 2)))
-                 :fill              "grey"
-                 :font-family       "Nunito" #_"verdana" #_"arial" #_"titillium web"
-                 :font-weight       "bold"
-                 :dominant-baseline "middle"
-                 :font-size         (* 0.8 g)
-                 :writing-mode      "tb"
-                 :fill-opacity      0.5}
-
-          (first (weeks-indicators [cursor-week]))]
-         [:text {:x                 (* g (+ 2 x))
-                 :y                 (* g (+ y (/ 1 2)))
-                 :fill              "grey"
-                 ;:font-family       "Nunito" #_"verdana" #_"arial" #_"titillium web"
-                 ;:text-rendering    "geometricPrecision"
-                 :font-weight       "bold"
-                 :dominant-baseline "middle"
-                 :font-size         (* 0.8 g)
-                 :fill-opacity      0.5}
-          (str p-indicator)]
-         [:rect#cursor {:x            (- (* g x) g)
-                        :y            (- (* g y) g)
-                        :width        (* 3 g)
-                        :height       (* 3 g)
-                        :stroke       "white"
-                        :stroke-width 0
-                        :fill         "white"
-                        :fill-opacity 0.0}]]))))
-(defn cross []
-  (let [cross (rf/subscribe [:view/cross])
-        model (rf/subscribe [:model/model])
-        grid  (rf/subscribe [:view/grid])]
-    (fn []
-
-      (let [g      @grid
-            c      @cross
-            g-half (/ g 2)
-            x      (:cw c)
-            y      (:project c)
-            size-x (* g (- (:max-cw @model) (:min-cw @model)))
-            size-y (* g (+ 5 (count (:projects @model))))]
-        [:<>
-         [:line {:x1             (+ g-half (* g x))
-                 :y1             0
-                 :x2             (+ g-half (* g x))
-                 :y2             size-y
-                 :stroke         "white"
-                 :stroke-width   (/ g 2)
-                 :stroke-opacity 0.3}]
-         [:line {:x1             0
-                 :y1             (+ g-half (* g y))
-                 :x2             size-x
-                 :y2             (+ g-half (* g y))
-                 :stroke         "white"
-                 :stroke-width   (/ g 2)
-                 :stroke-opacity 0.3}]]))))
-
-
-(defn square []
-  (let [grid (rf/subscribe [:view/grid])]
-    (fn [x y]
-      (let [g @grid]
-        [:rect {:x            x
-                :y            y
-                :width        g
-                :height       g
-                :stroke       "white"
-                :stroke-width 1
-                :fill         "black"
-                :fill-opacity 0.1}]))))
-
-(defn project-names []
-  (let [grid           (rf/subscribe [:view/grid])
-        browser-scroll (rf/subscribe [:view/browser-scroll])]
-    (fn [row start-cw len-cw name project-id]
-      (let [gx (* start-cw @grid)
-            gy (* row @grid)]
-        (vec (cons :<> (conj (vec (map (fn [cw] [square (+ gx (* cw @grid)) gy])
-                                       (range len-cw)))
-                             [:text {:x                 (+ (get-svg-x-offset) (* 2 @grid))
-                                     :y                 (+ (/ @grid 2) gy)
-                                     :fill              "black"
-                                     ;:font-weight       "bold"
-                                     :dominant-baseline "middle"
-                                     :font-size         (* 0.8 @grid)
-                                     :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
-                              (str name)])))))))
+                                (str name)])))))))
 
 #_[:text {:x    10
           :y    gy
@@ -707,19 +706,19 @@
                              valid-cross)
          :dispatch [:grid-view/cross-visible]})))
 
-(rf/reg-event-db
-  :view/cross-abs-move
-  (fn [db [_ x y]]
-    (let [g      (get-in db [:view :grid])
-          cw     (quot x g)
-          pr     (quot y g)
-          model  (get-in db [:model])
-          size-y (count (:g/projects model))]
-      ;(println "x/y: "x"/"y ", cw/pr: "cw"/"pr)
-      (if (< pr size-y)
-        (assoc-in db [:view :cross]
-                  {:cw cw :project pr})
-        db))))
+#_(rf/reg-event-db
+    :view/cross-abs-move
+    (fn [db [_ x y]]
+      (let [g      (get-in db [:view :grid])
+            cw     (quot x g)
+            pr     (quot y g)
+            model  (get-in db [:model])
+            size-y (count (:g/projects model))]
+        ;(println "x/y: "x"/"y ", cw/pr: "cw"/"pr)
+        (if (< pr size-y)
+          (assoc-in db [:view :cross]
+                    {:cw cw :project pr})
+          db))))
 
 
 #_(rf/reg-event-fx
@@ -760,53 +759,6 @@
             #_(update-in [:view :size :x] / zoom-factor)
             #_(update-in [:view :size :y] / zoom-factor)))))
 
-(defn get-browser-size []
-  {:jsw-inner-width      (.-innerWidth js/window)
-   :jsd-de-client-width  (.-clientWidth (.-documentElement js/document))
-   :jsd-b-client-width   (.-clientWidth (.-body js/document))
-   :jsw-inner-height     (.-innerHeight js/window)
-   :jsd-de-client-height (.-clientHeight (.-documentElement js/document))
-   :jsd-b-client-height  (.-clientHeight (.-body js/document))})
-
-(rf/reg-event-db
-  :view/resize
-  (fn [db [_]]
-    (-> db
-        (update-in [:view :resize] (fnil inc 0))
-        (assoc-in [:view :browser-size] (get-browser-size))
-        #_(assoc-in [:view :cross] valid-cross)
-        #_(update-in [:view :size :x] / zoom-factor)
-        #_(update-in [:view :size :y] / zoom-factor))))
-
-#_(rf/reg-event-db
-    :view/browser-scroll
-    (fn [db [_]]
-      (-> db
-          (update-in [:view :browser-scroll] (fnil inc 0)))))
-;(assoc-in [:view :browser-size] (get-browser-size)))))
-
-
-
-(def debounce-resize-fn
-  (bb/debounced-now #_goog.functions.debounce
-    (fn resize-fn [event] (rf/dispatch [:view/resize])) 100))
-
-(defn resize-fn [event]
-  (debounce-resize-fn event)
-  #_(goog.functions.debounce #(rf/dispatch [:view/resize]) 300)
-  #_(rf/dispatch [:view/resize])
-  ;(.log js/console event)
-  #_(println (pr-str (js->clj event))))
-;(let [event-map (js->clj event :keywordize-keys true)]
-;(println "cljs data: " event-map))
-
-
-(events/listen js/window
-               EventType.RESIZE
-               resize-fn)
-
-
-
 #_(rf/reg-sub
     :view/cross
     (fn [db _]
@@ -819,10 +771,6 @@
       (-> db :view :size)))
 
 
-(rf/reg-sub
-  :view/browser-size
-  (fn [db _]
-    (-> db :view :browser-size)))
 
 #_(rf/reg-sub
     :view/browser-scroll
@@ -830,10 +778,10 @@
       (-> db :view :browser-scroll)))
 
 ; todo remove
-(rf/reg-sub
-  :view/resize
-  (fn [db _]
-    (-> db :view :resize)))
+#_(rf/reg-sub
+    :view/resize
+    (fn [db _]
+      (-> db :view :resize)))
 
 #_(rf/reg-sub
     :model/projects
@@ -859,10 +807,10 @@
         (model/current-project current-project))))
 
 
-(rf/reg-sub
-  :view/grid
-  (fn [db _]
-    (-> db :view :grid)))
+#_(rf/reg-sub
+    :view/grid
+    (fn [db _]
+      (-> db :view :grid)))
 
 #_(def ignore-prevent-default {187 true
                                189 true})
@@ -894,246 +842,246 @@
                          (reset! shift-down false))))))
 
 
-(comment
-  (type (KeyHandler. js/document))
-  (def l (events/listen (KeyHandler. js/document) #_js/window
-                        EventType.KEYUP #_(-> KeyHandler .-EventType .-KEY)
-                        (fn [key-press]
-                          (println "key pressed")
-                          (println (bb/js-obj->clj-map key-press)))))
-  (def listener-key ((bb/js-obj->clj-map l) "listener"))
-  (events/unlistenByKey l))
+#_(comment
+    (type (KeyHandler. js/document))
+    (def l (events/listen (KeyHandler. js/document) #_js/window
+                          EventType.KEYUP #_(-> KeyHandler .-EventType .-KEY)
+                          (fn [key-press]
+                            (println "key pressed")
+                            (println (bb/js-obj->clj-map key-press)))))
+    (def listener-key ((bb/js-obj->clj-map l) "listener"))
+    (events/unlistenByKey l))
 
 
 
-(def p-small [[1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 22 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 52 6]])
+#_(def p-small [[1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 22 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 52 6]])
 
-(def p-medium [[3 2 6]
-               [1 20 3] ; id, cw, len in cw
-               [2 6 12]
-               [3 2 6]
-               [1 0 3] ; id, cw, len in cw
-               [2 6 12]
-               [3 2 6]
-               [1 0 3] ; id, cw, len in cw
-               [2 6 12]
-               [3 2 6]
-               [1 40 3] ; id, cw, len in cw
-               [2 6 12]
-               [3 2 6]
-               [1 50 3] ; id, cw, len in cw
-               [2 6 12]
-               [3 42 6]
-               [1 50 3] ; id, cw, len in cw
-               [2 46 12]
-               [3 2 60]
-               [1 0 3] ; id, cw, len in cw
-               [2 69 12]
-               [3 2 6]
-               [1 0 30] ; id, cw, len in cw
-               [2 6 12]
-               [3 20 6]
-               [1 0 3] ; id, cw, len in cw
-               [2 6 120]
-               [3 2 6]])
+#_(def p-medium [[3 2 6]
+                 [1 20 3] ; id, cw, len in cw
+                 [2 6 12]
+                 [3 2 6]
+                 [1 0 3] ; id, cw, len in cw
+                 [2 6 12]
+                 [3 2 6]
+                 [1 0 3] ; id, cw, len in cw
+                 [2 6 12]
+                 [3 2 6]
+                 [1 40 3] ; id, cw, len in cw
+                 [2 6 12]
+                 [3 2 6]
+                 [1 50 3] ; id, cw, len in cw
+                 [2 6 12]
+                 [3 42 6]
+                 [1 50 3] ; id, cw, len in cw
+                 [2 46 12]
+                 [3 2 60]
+                 [1 0 3] ; id, cw, len in cw
+                 [2 69 12]
+                 [3 2 6]
+                 [1 0 30] ; id, cw, len in cw
+                 [2 6 12]
+                 [3 20 6]
+                 [1 0 3] ; id, cw, len in cw
+                 [2 6 120]
+                 [3 2 6]])
 
-(def p-large [[1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 22 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 52 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 56 12]
-              [3 2 6]
-              [1 20 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 40 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 50 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 42 6]
-              [1 50 3] ; id, cw, len in cw
-              [2 46 12]
-              [3 2 60]
-              [1 0 3] ; id, cw, len in cw
-              [2 69 12]
-              [3 2 6]
-              [1 0 30] ; id, cw, len in cw
-              [2 6 12]
-              [3 20 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 120]
-              [3 2 6]
-              [1 9 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 60]
-              [1 30 30] ; id, cw, len in cw
-              [2 6 12]
-              [3 52 6]
-              [1 10 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 22 6]
-              [1 40 3] ; id, cw, len in cw
-              [2 16 12]
-              [3 42 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 22 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 52 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 56 12]
-              [3 2 6]
-              [1 20 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 40 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 50 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 42 6]
-              [1 50 3] ; id, cw, len in cw
-              [2 46 12]
-              [3 2 60]
-              [1 0 3] ; id, cw, len in cw
-              [2 69 12]
-              [3 2 6]
-              [1 0 30] ; id, cw, len in cw
-              [2 6 12]
-              [3 20 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 120]
-              [3 2 6]
-              [1 9 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 60]
-              [1 30 30] ; id, cw, len in cw
-              [2 6 12]
-              [3 52 6]
-              [1 10 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 22 6]
-              [1 40 3] ; id, cw, len in cw
-              [2 16 12]
-              [3 42 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 22 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 52 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 56 12]
-              [3 2 6]
-              [1 20 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 40 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 50 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 42 6]
-              [1 50 3] ; id, cw, len in cw
-              [2 46 12]
-              [3 2 60]
-              [1 0 3] ; id, cw, len in cw
-              [2 69 12]
-              [3 2 6]
-              [1 0 30] ; id, cw, len in cw
-              [2 6 12]
-              [3 20 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 120]
-              [3 2 6]
-              [1 9 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 60]
-              [1 30 30] ; id, cw, len in cw
-              [2 6 12]
-              [3 52 6]
-              [1 10 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 22 6]
-              [1 40 3] ; id, cw, len in cw
-              [2 16 12]
-              [3 42 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 22 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 52 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 56 12]
-              [3 2 6]
-              [1 20 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 40 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 6]
-              [1 50 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 42 6]
-              [1 50 3] ; id, cw, len in cw
-              [2 46 12]
-              [3 2 60]
-              [1 0 3] ; id, cw, len in cw
-              [2 69 12]
-              [3 2 6]
-              [1 0 30] ; id, cw, len in cw
-              [2 6 12]
-              [3 20 6]
-              [1 0 3] ; id, cw, len in cw
-              [2 6 120]
-              [3 2 6]
-              [1 9 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 2 60]
-              [1 30 30] ; id, cw, len in cw
-              [2 6 12]
-              [3 52 6]
-              [1 10 3] ; id, cw, len in cw
-              [2 6 12]
-              [3 22 6]
-              [1 40 3] ; id, cw, len in cw
-              [2 16 12]
-              [3 42 6]])
+#_(def p-large [[1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 22 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 52 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 56 12]
+                [3 2 6]
+                [1 20 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 40 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 50 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 42 6]
+                [1 50 3] ; id, cw, len in cw
+                [2 46 12]
+                [3 2 60]
+                [1 0 3] ; id, cw, len in cw
+                [2 69 12]
+                [3 2 6]
+                [1 0 30] ; id, cw, len in cw
+                [2 6 12]
+                [3 20 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 120]
+                [3 2 6]
+                [1 9 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 60]
+                [1 30 30] ; id, cw, len in cw
+                [2 6 12]
+                [3 52 6]
+                [1 10 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 22 6]
+                [1 40 3] ; id, cw, len in cw
+                [2 16 12]
+                [3 42 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 22 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 52 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 56 12]
+                [3 2 6]
+                [1 20 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 40 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 50 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 42 6]
+                [1 50 3] ; id, cw, len in cw
+                [2 46 12]
+                [3 2 60]
+                [1 0 3] ; id, cw, len in cw
+                [2 69 12]
+                [3 2 6]
+                [1 0 30] ; id, cw, len in cw
+                [2 6 12]
+                [3 20 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 120]
+                [3 2 6]
+                [1 9 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 60]
+                [1 30 30] ; id, cw, len in cw
+                [2 6 12]
+                [3 52 6]
+                [1 10 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 22 6]
+                [1 40 3] ; id, cw, len in cw
+                [2 16 12]
+                [3 42 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 22 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 52 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 56 12]
+                [3 2 6]
+                [1 20 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 40 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 50 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 42 6]
+                [1 50 3] ; id, cw, len in cw
+                [2 46 12]
+                [3 2 60]
+                [1 0 3] ; id, cw, len in cw
+                [2 69 12]
+                [3 2 6]
+                [1 0 30] ; id, cw, len in cw
+                [2 6 12]
+                [3 20 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 120]
+                [3 2 6]
+                [1 9 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 60]
+                [1 30 30] ; id, cw, len in cw
+                [2 6 12]
+                [3 52 6]
+                [1 10 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 22 6]
+                [1 40 3] ; id, cw, len in cw
+                [2 16 12]
+                [3 42 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 22 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 52 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 56 12]
+                [3 2 6]
+                [1 20 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 40 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 6]
+                [1 50 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 42 6]
+                [1 50 3] ; id, cw, len in cw
+                [2 46 12]
+                [3 2 60]
+                [1 0 3] ; id, cw, len in cw
+                [2 69 12]
+                [3 2 6]
+                [1 0 30] ; id, cw, len in cw
+                [2 6 12]
+                [3 20 6]
+                [1 0 3] ; id, cw, len in cw
+                [2 6 120]
+                [3 2 6]
+                [1 9 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 2 60]
+                [1 30 30] ; id, cw, len in cw
+                [2 6 12]
+                [3 52 6]
+                [1 10 3] ; id, cw, len in cw
+                [2 6 12]
+                [3 22 6]
+                [1 40 3] ; id, cw, len in cw
+                [2 16 12]
+                [3 42 6]])
 
 #_(def pr-cur p-small)
 #_(defn create-model []
@@ -1141,7 +1089,7 @@
      :max-cw   (apply max (map #(+ (last %) (second %)) pr-cur))
      :projects pr-cur})
 
-(def d t/date)
+#_(def d t/date)
 
 #_(defn create-model []
     (model/generate-random-model 30)
@@ -1165,23 +1113,23 @@
                                                 200))))
 
 
-(comment
-  #_(create-model)
-  (.scrollTo js/window 0 0 :smooth)
-  (.scrollTo js/window 100 100 :smooth)
-  (.scrollTo js/window 0 0)
-  (def cursor (.getElementById js/document "cursor"))
-  (.scrollIntoView cursor))
+#_(comment
+    #_(create-model)
+    (.scrollTo js/window 0 0 :smooth)
+    (.scrollTo js/window 100 100 :smooth)
+    (.scrollTo js/window 0 0)
+    (def cursor (.getElementById js/document "cursor"))
+    (.scrollIntoView cursor))
 
-(def time-deserialization-handlers
-  (assoc-in time/time-deserialization-handlers
-            [:handlers "LocalDate"] (transit/read-handler #(t/date %))))
+#_(def time-deserialization-handlers
+    (assoc-in time/time-deserialization-handlers
+              [:handlers "LocalDate"] (transit/read-handler #(t/date %))))
 
-(def time-serialization-handlers
-  (assoc-in time/time-serialization-handlers
-            [:handlers LocalDate] (transit/write-handler
-                                    (constantly "LocalDate")
-                                    #(str %))))
+#_(def time-serialization-handlers
+    (assoc-in time/time-serialization-handlers
+              [:handlers LocalDate] (transit/write-handler
+                                      (constantly "LocalDate")
+                                      #(str %))))
 
 ;(belib.browser/js-obj->clj-map time-serialization-handlers)
 
@@ -1190,35 +1138,35 @@
 ;(println (= (type date) java.time.LocalDate))
 ;(println java.time.LocalDate)
 
-(comment
-  (defn transit-out [data]
-    (let [w (transit/writer :json time-serialization-handlers)]
-      (transit/write w data)))
+#_(comment
+    (defn transit-out [data]
+      (let [w (transit/writer :json time-serialization-handlers)]
+        (transit/write w data)))
 
-  (defn transit-in [data]
-    (let [r (transit/reader :json time-deserialization-handlers)]
-      (transit/read r data)))
+    (defn transit-in [data]
+      (let [r (transit/reader :json time-deserialization-handlers)]
+        (transit/read r data)))
 
-  (println "t/date OUT: " (transit-out (t/date "2023-04-03")))
-  (transit-out {:x "y"})
-  (def date-transit (transit-out (t/date)))
-  (def restored-date (transit-in date-transit)))
+    (println "t/date OUT: " (transit-out (t/date "2023-04-03")))
+    (transit-out {:x "y"})
+    (def date-transit (transit-out (t/date)))
+    (def restored-date (transit-in date-transit)))
 
 
-(rf/reg-event-fx
-  :model/save
-  (fn [cofx _]
-    (println "saving model:")
-    ;(pprint (:model (:db cofx))) ;TODO remove load data???
-    {:http-xhrio {:method          :post
-                  :params          (:model (:db cofx))
-                  :uri             "/api/send-recv-date"
-                  :format          (ajax/transit-request-format #_ajax/json-request-format
-                                     time-serialization-handlers)
-                  :response-format (ajax/transit-response-format #_(ajax/raw-response-format {:keywords? true})
-                                     time-deserialization-handlers)
-                  :on-success      [:authorized-success]
-                  :on-failure      [:authorized-failure]}}))
+#_(rf/reg-event-fx
+    :model/save
+    (fn [cofx _]
+      (println "saving model:")
+      ;(pprint (:model (:db cofx))) ;TODO remove load data???
+      {:http-xhrio {:method          :post
+                    :params          (:model (:db cofx))
+                    :uri             "/api/send-recv-date"
+                    :format          (ajax/transit-request-format #_ajax/json-request-format
+                                       time-serialization-handlers)
+                    :response-format (ajax/transit-response-format #_(ajax/raw-response-format {:keywords? true})
+                                       time-deserialization-handlers)
+                    :on-success      [:authorized-success]
+                    :on-failure      [:authorized-failure]}}))
 
-(comment
-  (type (#time/date "2039-01-01")))
+#_(comment
+    (type (#time/date "2039-01-01")))

@@ -18,31 +18,58 @@
 (comment
   (now-date-time))
 
+
+(defn get-browser-size []
+  {:jsw-inner-width      (.-innerWidth js/window)
+   :jsd-de-client-width  (.-clientWidth (.-documentElement js/document))
+   :jsd-b-client-width   (.-clientWidth (.-body js/document))
+   :jsw-inner-height     (.-innerHeight js/window)
+   :jsd-de-client-height (.-clientHeight (.-documentElement js/document))
+   :jsd-b-client-height  (.-clientHeight (.-body js/document))})
+
+(rf/reg-event-db
+  :browser/resize
+  (fn [db [_]]
+    (-> db
+        (update-in [:view :resize] (fnil inc 0))
+        (assoc-in [:view :browser-size] (get-browser-size)))))
+
+(rf/reg-sub
+  :browser/browser-size
+  (fn [db _]
+    (-> db :view :browser-size)))
+
+(def debounce-resize-fn
+  (bb/debounced-now #_goog.functions.debounce
+    (fn resize-fn [event] (rf/dispatch [:browser/resize])) 100))
+
+(defn resize-fn [event]
+  (debounce-resize-fn event))
+
+(events/listen js/window
+               EventType.RESIZE
+               resize-fn)
+
 ;; https://fontawesome.com/search?q=user&o=r&m=free
 (defn show-size []
-  (let [resize (rf/subscribe [:view/resize])]
+  (let [resize (rf/subscribe [:browser/browser-size])]
     (fn [] (let [jsw-inner-width      (.-innerWidth js/window)
                  jsd-de-client-width  (.-clientWidth (.-documentElement js/document))
                  jsd-b-client-width   (.-clientWidth (.-body js/document))
                  jsw-inner-height     (.-innerHeight js/window)
                  jsd-de-client-height (.-clientHeight (.-documentElement js/document))
                  jsd-b-client-height  (.-clientHeight (.-body js/document))]
-             [:pre
+             [:pre (str "browser re-size:\n" (with-out-str (cljs.pprint/pprint (if @resize @resize "no re-size yet..."))))
+
               #_(bb/filter-events-map #"dr")
               #_bb/all-events-map
               #_[
                  :on-copy :on-cut :on-paste
                  :on-key-down :on-key-press :on-key-up
                  :on-focus :on-blur
-                 :on-change :on-input :on-invalid :on-reset :on-submit]
+                 :on-change :on-input :on-invalid :on-reset :on-submit]]))))
 
-              (str @resize "\n"
-                   "jsw-inner-width: " jsw-inner-width "\n"
-                   "jsd-de-client-width: " jsd-de-client-width "\n"
-                   "jsd-b-client-width: " jsd-b-client-width "\n"
-                   "jsw-inner-height: " jsw-inner-height "\n"
-                   "jsd-de-client-height: " jsd-de-client-height "\n"
-                   "jsd-b-client-height: " jsd-b-client-height)]))))
+
 (defn pr-size
   "https://github.com/district0x/re-frame-window-fx"
   []

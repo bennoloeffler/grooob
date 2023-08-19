@@ -36,7 +36,7 @@
     (rf/dispatch-sync [:grid-view/init component-id])
     (fn []
       [:<>
-       ;[:div "project-single-view"]
+       [:div "projects overview"]
        #_[:div "project: " (str (last (get (vec (:projects @model)) (:project @cross))))]
        ;[:pre (with-out-str (pprint @model))]
        ;[:pre (with-out-str (pprint @project))]

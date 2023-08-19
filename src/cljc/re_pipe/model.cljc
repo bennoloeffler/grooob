@@ -9,7 +9,7 @@
     [belib.date-time :as dt]
     [clojure.pprint :refer [pprint]]
     [belib.cal-week-year :as bcw]
-    [re-pipe.model-spec :as ms :refer [example-model get-rand-project-id projects-ids-range resources-ids-range]]
+    [re-pipe.model-spec :as ms :refer [example-model get-rand-project-id projects-ids-range resources-ids-range next-sequence-num]]
     [clojure.spec.alpha :as s]
     [hyperfiddle.rcf :refer [tests]]
     [clojure.test.check.generators :as gen]
@@ -17,7 +17,7 @@
 
 
 
-(hyperfiddle.rcf/enable! false)
+(hyperfiddle.rcf/enable! true)
 
 (def d t/date)
 (def dt t/date-time)
@@ -116,26 +116,27 @@
 (defn add-resource
   [model resource-name yellow-limit red-limit]
   {:post [(bs/validate :g/model %)]}
-  (assoc-in model [:g/resources resource-name] {:g/entity-id   resource-name
-                                                :g/name        resource-name
-                                                :g/norm-capa   {:g/yellow yellow-limit :g/red red-limit}
-                                                :g/change-capa []}))
+  (assoc-in model [:g/resources resource-name] {:g/entity-id    resource-name
+                                                :g/name         resource-name
+                                                :g/sequence-num (ms/next-sequence-num)
+                                                :g/norm-capa    {:g/yellow yellow-limit :g/red red-limit}
+                                                :g/change-capa  []}))
 
-(defn add-pipeline
-  [model pipeline-name max-ip]
-  {:post [(bs/validate :g/model %)]}
-  (assoc-in model [:g/pipelines pipeline-name] {:g/entity-id         pipeline-name
-                                                :g/name              pipeline-name
-                                                :g/max-ip            max-ip
-                                                :g/projects-sequence []}))
+#_(defn add-pipeline
+    [model pipeline-name max-ip]
+    {:post [(bs/validate :g/model %)]}
+    (assoc-in model [:g/pipelines pipeline-name] {:g/entity-id         pipeline-name
+                                                  :g/name              pipeline-name
+                                                  :g/max-ip            max-ip
+                                                  :g/projects-sequence []}))
 
-(tests
-  (some? (add-pipeline
-           (new-model "a-model")
-           "pip"
-           20)) := true)
+#_(tests
+    (some? (add-pipeline
+             (new-model "a-model")
+             "pip"
+             20)) := true)
 
-
+; TODO move to belib core
 (defn sorted-map-by-key [m sort-by-key]
   (into (sorted-map-by (fn [key1 key2]
                          (- (compare [(get-in m [key2 sort-by-key]) key2]
@@ -165,20 +166,21 @@
           results)))
 
 (defn add-project
-  [model project-name end pipeline]
+  [model project-name end]
   #_{:pre  [((fn pipeline-exists [] (get-in model [:g/pipelines pipeline])))]
      :post [(bs/validate :g/model %)]}
 
   (-> model
-      (assoc-in [:g/projects project-name] {:g/entity-id project-name
-                                            :g/name      project-name
-                                            :g/end       (if end end (d "2024-01-01"))
-                                            :g/tasks     {}})
-      (update-in [:g/pipelines pipeline :g/projects-sequence] conj project-name)))
+      (assoc-in [:g/projects project-name] {:g/entity-id    project-name
+                                            :g/name         project-name #_(str "pro-" project-name)
+                                            :g/end          (if end end (d "2024-01-01"))
+                                            :g/sequence-num (next-sequence-num)
+                                            :g/tasks        {}})
+      #_(update-in [:g/pipelines pipeline :g/projects-sequence] conj project-name)))
 
-(comment
-  (-> example-model
-      (update-in [:g/pipelines 123 :g/projects-sequence] conj "project-name")))
+#_(comment
+    (-> example-model
+        (update-in [:g/pipelines 123 :g/projects-sequence] conj "project-name")))
 
 (tests
   (some? (-> (new-model "a-model")
@@ -187,8 +189,8 @@
 (tests
   (count (:g/projects (-> (new-model "a-model")
                           (add-resource "engineering" 20 40)
-                          (add-pipeline "pip-25" 25)
-                          (add-project "new-proj" nil "pip-25")))) := 1)
+                          #_(add-pipeline "pip-25" 25)
+                          (add-project "new-proj" nil)))) := 1)
 
 
 
@@ -409,8 +411,8 @@
 (tests
   (-> (new-model "a-model")
       (add-resource "engineering" 20 40)
-      (add-pipeline "pip-25" 25)
-      (add-project "new-proj" nil "pip-25")
+      #_(add-pipeline "pip-25" 25)
+      (add-project "new-proj" nil #_"pip-25")
       (add-task "new-proj" (t (d "2023-05-07")
                               (d "2023-06-01")
                               "engineering"
@@ -423,8 +425,8 @@
 (comment
   (-> (new-model "a-model")
       (add-resource "engineering" 20 40)
-      (add-pipeline "pip-25" 25)
-      (add-project "new-proj" nil "pip-25")
+      #_(add-pipeline "pip-25" 25)
+      (add-project "new-proj" nil #_"pip-25")
       (add-task "new-proj" (t (d "2023-05-07")
                               (d "2023-06-01")
                               "engineering"
@@ -575,9 +577,9 @@
 (comment
   (move-project (-> (new-model "a-model")
                     (add-resource "engineering" 20 40)
-                    (add-pipeline "pip-25" 25)
-                    (add-project "new-proj-1" nil "pip-25")
-                    (add-project "new-proj-2" nil "pip-25")
+                    #_(add-pipeline "pip-25" 25)
+                    (add-project "new-proj-1" nil #_"pip-25")
+                    (add-project "new-proj-2" nil #_"pip-25")
                     (add-task "new-proj-1" (t (d "2023-05-07")
                                               (d "2023-06-01")
                                               "engineering"
@@ -598,7 +600,7 @@
 ;;----------------------------------------------
 
 (defn add-project-red-fn [m num]
-  (add-project m num bcw/last-date "p"))
+  (add-project m num bcw/last-date #_"p"))
 
 (defn add-resource-red-fn [m num]
   (add-resource m num 100 200))
@@ -628,7 +630,7 @@
         ;_               (pprint tasks)
         _     (println "wiring model...")
         m     (time (as-> (new-model "m") $
-                          (add-pipeline $ "p" 100)
+                          #_(add-pipeline $ "p" 100)
                           (reduce add-project-red-fn $ projects-ids-range)
                           (reduce add-resource-red-fn $ resources-ids-range)
                           (reduce add-task-red-fn $ tasks)))]
@@ -712,12 +714,14 @@
                    :name         (:g/resource-id task)
                    :sequence-num (:g/sequence-num task)
                    :id           (:g/entity-id task)})] ; ressource
-    {:min-cw   (first (first (:g/start-end-project-cw project)))
-     :max-cw   (first (second (:g/start-end-project-cw project)))
-     :projects (vec (sort-by :sequence-num (map-indexed task-fn
-                                                        (vals (:g/tasks project)))))
-     #_(vec (sort-by :sequence-num (map-indexed task-fn
-                                                (vals (:g/tasks project)))))}))
+    (when project
+      {:name     (:g/name project)
+       :min-cw   (first (first (:g/start-end-project-cw project)))
+       :max-cw   (first (second (:g/start-end-project-cw project)))
+       :projects (vec (sort-by :sequence-num (map-indexed task-fn
+                                                          (vals (:g/tasks project)))))
+       #_(vec (sort-by :sequence-num (map-indexed task-fn
+                                                  (vals (:g/tasks project)))))})))
 ;:original project}))
 
 (comment
@@ -752,9 +756,9 @@
 
   (def m-big (-> (new-model "a-model")
                  (add-resource "engineering" 20 40)
-                 (add-pipeline "pip-25" 25)
-                 (add-project "new-proj-1" nil "pip-25")
-                 (add-project "new-proj-2" nil "pip-25")
+                 #_(add-pipeline "pip-25" 25)
+                 (add-project "new-proj-1" nil #_"pip-25")
+                 (add-project "new-proj-2" nil #_"pip-25")
                  (add-task "new-proj-1" (t (d "2023-05-07")
                                            (d "2023-06-01")
                                            "engineering"
@@ -774,9 +778,9 @@
   (view-model
     (-> (new-model "a-model")
         (add-resource "engineering" 20 40)
-        (add-pipeline "pip-25" 25)
-        (add-project "new-proj-1" nil "pip-25")
-        (add-project "new-proj-2" nil "pip-25")
+        #_(add-pipeline "pip-25" 25)
+        (add-project "new-proj-1" nil #_"pip-25")
+        (add-project "new-proj-2" nil #_"pip-25")
         (add-task "new-proj-1" (t (d "2023-05-07")
                                   (d "2023-06-01")
                                   "engineering"
@@ -786,8 +790,8 @@
                                   "engineering"
                                   200)))) := {:min-cw   696
                                               :max-cw   700
-                                              :projects [[0 696 4 "new-proj-1"]
-                                                         [1 696 4 "new-proj-2"]]}
+                                              :projects [{:idx 0 :start-x 696 :len-x 4 :name "new-proj-1" :id "new-proj-1"}
+                                                         {:idx 1 :start-x 696 :len-x 4 :name "new-proj-2" :id "new-proj-2"}]}
 
   nil)
 ;:g/projects
@@ -810,14 +814,15 @@
   (t/> (d "2025-01-01") (d "2024-01-01"))
   (t/<< (d "2023-01-01") 5)
   (dec (t/days (t/duration (tai/new-interval (d "2023-01-01") (d "2023-01-02")))))
-  (t/duration (d "2023-01-01") (d "2024-01-01"))
+  (t/between (d "2023-01-01") (d "2024-01-01"))
+  (t/duration)
 
   (def tasks (->> (gen/sample (s/gen :g/task) 100)
                   (map #(shorten-task %))))
 
 
   (time (def m (as-> (new-model "m") $
-                     (add-pipeline $ "p" 100)
+                     #_(add-pipeline $ "p" 100)
                      (reduce add-project-red-fn $ projects-ids-range)
                      (reduce add-resource-red-fn $ resources-ids-range)
                      (reduce add-task-red-fn $ tasks))))

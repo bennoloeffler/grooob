@@ -15,7 +15,7 @@
       [java.time Period]))
 
 
-(hyperfiddle.rcf/enable! false)
+(hyperfiddle.rcf/enable! true)
 
 ;;--------------------
 ;; based on week time model
@@ -33,62 +33,70 @@
 (def example-model
   {:g/name "example-model"
    :g/projects
-   {"p1" {:g/entity-id "p1"
-          :g/name      "p1"
-          :g/end       (bd/d "2022-04-01")
+   {"p1" {:g/entity-id    "p1"
+          :g/name         "p1"
+          :g/sequence-num 1
+          :g/end          (bd/d "2022-04-01")
           :g/tasks
           {"tid-1" {:g/entity-id     "tid-1"
                     :g/start         (bd/d "2024-04-01")
                     :g/end           (bd/d "2024-04-20")
                     :g/resource-id   "engineering"
                     :g/capacity-need 15}
+
            123     {:g/entity-id     123
                     :g/start         (bd/d "2024-04-10")
                     :g/end           (bd/d "2024-04-30")
                     :g/resource-id   "purchasing"
                     :g/capacity-need 10}}}
-    "p2" {:g/entity-id "p2"
-          :g/name      "p2"
-          :g/end       (bd/d "2022-04-01")
+
+    "p2" {:g/entity-id    "p2"
+          :g/name         "p2"
+          :g/sequence-num 2
+          :g/end          (bd/d "2022-04-01")
           :g/tasks
           {"tid-2" {:g/entity-id     "tid-2"
                     :g/start         (bd/d "2022-04-01")
                     :g/end           (bd/d "2022-04-20")
                     :g/resource-id   "engineering"
                     :g/capacity-need 15}
+
            1234    {:g/entity-id     1234
                     :g/start         (bd/d "2022-04-10")
                     :g/end           (bd/d "2022-04-30")
                     :g/resource-id   "purchasing"
                     :g/capacity-need 10}}}}
 
-   :g/pipelines
-   {123 {:g/entity-id         123
-         :g/name              "abc"
-         :g/max-ip            12
-         ; sequence
-         :g/projects-sequence ["p1"]}
-    12  {:g/entity-id         123
-         :g/name              "abc"
-         :g/max-ip            12
-         ; sequence
-         :g/projects-sequence ["p2"]}}
+   #_:g/pipelines
+   #_{123 {:g/entity-id         123
+           :g/name              "abc"
+           :g/max-ip            12
+           ; sequence
+           :g/projects-sequence ["p1"]}
+      12  {:g/entity-id         123
+           :g/name              "abc"
+           :g/max-ip            12
+           ; sequence
+           :g/projects-sequence ["p2"]}}
    :g/resources
-   {"engineering" {:g/entity-id   "engineering"
-                   :g/name        "Engineering X"
-                   :g/norm-capa   {:g/yellow 15 :g/red 25}
-                   :g/change-capa [[(bd/d "2022-04-30") {:g/yellow 25 :g/red 35}]
-                                   [(bd/d "2022-04-30") {:g/yellow 25 :g/red 35}]]}
-    "purchasing"  {:g/entity-id   "engineering"
-                   :g/name        "Purchasing 23"
-                   :g/norm-capa   {:g/yellow 15 :g/red 25}
-                   :g/change-capa [[(bd/d "2022-04-30")
-                                    {:g/yellow 25 :g/red 35}]]}
-    "assembly"    {:g/entity-id   "assembly"
-                   :g/name        "ass 23"
-                   :g/norm-capa   {:g/yellow 15 :g/red 25}
-                   :g/change-capa [[(bd/d "2022-04-30")
-                                    {:g/yellow 25 :g/red 35}]]}}
+   {"engineering" {:g/entity-id    "engineering"
+                   :g/name         "Engineering X"
+                   :g/sequence-num 1
+                   :g/norm-capa    {:g/yellow 15 :g/red 25}
+                   :g/change-capa  [[(bd/d "2022-04-30") {:g/yellow 25 :g/red 35}]
+                                    [(bd/d "2022-04-30") {:g/yellow 25 :g/red 35}]]}
+    "purchasing"  {:g/entity-id    "engineering"
+                   :g/name         "Purchasing 23"
+                   :g/sequence-num 2
+                   :g/norm-capa    {:g/yellow 15 :g/red 25}
+                   :g/change-capa  [[(bd/d "2022-04-30")
+                                     {:g/yellow 25 :g/red 35}]]}
+    "assembly"    {:g/entity-id    "assembly"
+                   :g/name         "ass 23"
+                   :g/sequence-num 3
+                   :g/norm-capa    {:g/yellow 15 :g/red 25}
+                   :g/change-capa  [[(bd/d "2022-04-30")
+                                     {:g/yellow 25 :g/red 35}]]}}
 
    :g/load
    {"engineering" {:g/total-load    {693 24 694 26}
@@ -152,17 +160,17 @@
   (< (bd/duration-in-days (:g/start task)
                           (:g/end task)) (* 5 365)))
 
-(def sequence-num (atom 0))
+(defonce sequence-num (atom 0)) ; TODO check, if local-id helps here...
 (defn next-sequence-num []
   (swap! sequence-num inc))
 
-(defn gen-sequnce-num []
+(defn gen-sequence-num []
   (gen/fmap (fn [dummy] (next-sequence-num))
             (s/gen pos-int?)))
 
 (s/def :g/sequence-num
   (s/with-gen (s/and int? pos?)
-              gen-sequnce-num))
+              gen-sequence-num))
 
 (s/def :g/task (s/and
                  (s/keys :req [:g/entity-id
@@ -170,7 +178,7 @@
                                :g/end
                                :g/resource-id
                                :g/capacity-need
-                               :g/sequence-num])
+                               #_:g/sequence-num])
                  shorter-than-5-years?
                  ;#(jt/after? (:g/start %) bcw/first-date)
                  ;#(jt/before? (:g/end %) bcw/last-date)
@@ -223,7 +231,7 @@
 ;;----------------
 ;; projects - spec
 ;;-----------------
-(def projects-ids-range (vec (map str (range 100 110))))
+(def projects-ids-range (vec (map str (range 100 120))))
 (def projects-ids-set (set projects-ids-range))
 (defn get-rand-project-id [] (rand-nth projects-ids-range))
 
@@ -231,7 +239,8 @@
 (s/def :g/project (s/keys :req [:g/entity-id ; :g/project-id
                                 :g/name
                                 :g/end
-                                :g/tasks]))
+                                :g/tasks
+                                :g/sequence-num]))
 (s/def :g/projects (s/map-of :g/entity-id :g/project))
 
 (tests
@@ -248,6 +257,7 @@
 (s/def :g/norm-capa :g/yellow-red-entry)
 (s/def :g/resource (s/keys :req [:g/entity-id
                                  :g/name
+                                 :g/sequence-num
                                  :g/norm-capa]
                            :opt [:g/change-capa]))
 (s/def :g/resources (s/map-of :g/entity-id :g/resource))
@@ -260,19 +270,19 @@
 ;; pipeline - spec
 ;;-----------------
 
-(s/def :g/max-ip number?)
+#_(s/def :g/max-ip number?)
 ; sequence of projects
-(s/def :g/projects-sequence (s/coll-of :g/entity-id))
-(s/def :g/pipeline (s/keys :req [:g/entity-id
-                                 :g/name
-                                 :g/max-ip
-                                 ; sequence
-                                 :g/projects-sequence]))
-(s/def :g/pipelines (s/map-of :g/entity-id :g/pipeline))
+#_(s/def :g/projects-sequence (s/coll-of :g/entity-id))
+#_(s/def :g/pipeline (s/keys :req [:g/entity-id
+                                   :g/name
+                                   :g/max-ip
+                                   ; sequence
+                                   :g/projects-sequence]))
+#_(s/def :g/pipelines (s/map-of :g/entity-id :g/pipeline))
 
-(tests
-  (let [pipelines (get-in example-model [:g/pipelines])]
-    (s/valid? :g/pipelines pipelines)) := true)
+#_(tests
+    (let [pipelines (get-in example-model [:g/pipelines])]
+      (s/valid? :g/pipelines pipelines)) := true)
 
 ;;----------------
 ;; model - spec
@@ -352,10 +362,10 @@
     #_[res-ids-pr all-res-ids]
     (= (set/intersection res-ids-load all-res-ids) res-ids-load)))
 
-(defn all-project-ids-in-pipelines-match? [model]
-  (let [all-pr-in-pip (all-project-ids-in-pipelines model)
-        all-pr        (all-project-ids model)]
-    (= all-pr-in-pip all-pr)))
+#_(defn all-project-ids-in-pipelines-match? [model]
+    (let [all-pr-in-pip (all-project-ids-in-pipelines model)
+          all-pr        (all-project-ids model)]
+      (= all-pr-in-pip all-pr)))
 
 (defn all-task-ids-in-load-match? [model]
   (let [tasks-ids-pr (all-task-ids-in-all-projects model)
@@ -372,13 +382,15 @@
                   all-res-ids-in-load-match?
                   all-res-ids-in-pr-match?
                   all-task-ids-in-load-match?
-                  all-project-ids-in-pipelines-match?
+                  #_all-project-ids-in-pipelines-match?
                   (s/keys :req [:g/name
                                 :g/projects
-                                :g/pipelines
+                                #_:g/pipelines
                                 :g/resources
                                 :g/load])))
 
+(comment
+  (bs/validate :g/model example-model))
 (tests
   (some? (bs/validate :g/model example-model)) := true)
 
