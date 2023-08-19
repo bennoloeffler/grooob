@@ -141,6 +141,8 @@
     {:post {:handler (fn [{session :session :as data}]
                        (println "CALL unauthorized. Received dates in data:")
                        (cprint (:g/start-end-model (:body-params data)))
+                       (println "COMPLETE MODEL:")
+                       (cprint (:body-params data))
                        ;(println)
                        ;(println "session:")
                        ;(cprint session)

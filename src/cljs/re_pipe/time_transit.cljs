@@ -95,4 +95,5 @@
                   :on-failure      [:authorized-failure]}}))
 
 (comment
+  (rf/dispatch [:model/save])
   (type (#time/date "2039-01-01")))

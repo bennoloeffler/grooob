@@ -20,7 +20,8 @@
             [luminus-transit.time :as time]
             [cognitect.transit :as transit]
             [re-pressed.core :as rp]
-            [re-pipe.project-single-view.core :as c])
+            [re-pipe.project-single-view.core :as c]
+            [re-pipe.time-transit])
 
   (:import goog.History
            [goog.events EventType KeyHandler]))
@@ -28,6 +29,15 @@
 
 (defn keydown-rules [component-id _model]
   {:event-keys [
+                ; MISC
+
+                [[:model/save]
+                 ;; will be triggered if
+                 [{:keyCode keycodes/S :shiftKey true}]]
+
+                [[:common/navigate! :projects-portfolio nil nil]
+                 ;; will be triggered if
+                 [{:keyCode keycodes/P}]]
 
                 ;; Move TASK with shift <- -> AD
 
@@ -76,11 +86,8 @@
                 [[:grid-view/zoom component-id 1.1]
                  ;; will be triggered if
                  [{:keyCode #_keycodes/PLUS_SIGN 187}] ; PLUS_SIGN does not work?
-                 [{:keyCode keycodes/Z}]]
+                 [{:keyCode keycodes/Z}]]]
 
-                [[:common/navigate! :projects-portfolio nil nil]
-                 ;; will be triggered if
-                 [{:keyCode keycodes/P}]]]
 
 
    ;; tab is pressed twice in a row

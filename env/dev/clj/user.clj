@@ -62,7 +62,7 @@
   "refresh all"
   []
   (clojure.tools.namespace.repl/set-refresh-dirs
-    "src/clj" "env/dev/clj")
+    "src/cljc" "src/clj" "env/dev/clj")
   (refresh-all))
 
 (defn t []
