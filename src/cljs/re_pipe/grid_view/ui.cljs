@@ -144,10 +144,10 @@
                 :fill-opacity 0.1}]))))
 
 ; TODO split names and square
-(defn one-y-line [component-id row start-cw len-cw project-id]
+(defn one-y-line [component-id row start-cw len-cw name id]
   (let [grid           (rf/subscribe [:sub/data-path [:view (keyword component-id) :grid]])
         browser-scroll (rf/subscribe [:grid-view/browser-scroll])]
-    (fn [component-id row start-cw len-cw project-id]
+    (fn [component-id row start-cw len-cw name id]
       (let [gx (* start-cw @grid)
             gy (* row @grid)]
         (vec (cons :<> (conj (vec (map (fn [cw] [square component-id (+ gx (* cw @grid)) gy])
@@ -160,10 +160,10 @@
                                :dominant-baseline "middle"
                                :font-size         (* 0.8 @grid)
                                :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
-                              (str project-id)])))))))
+                              (str name)])))))))
 
-(defn map-one-y-line [component-id start-x-total idx-raw {:keys [idx start-x len-x name id]}]
-  [one-y-line component-id idx-raw (- start-x start-x-total) len-x name])
+(defn map-one-y-line [component-id start-x-total row {:keys [start-x len-x name id]}]
+  [one-y-line component-id row (- start-x start-x-total) len-x name id])
 
 (defn y-axis [component-id _model]
   (let [start-x-total (:min-cw @_model)

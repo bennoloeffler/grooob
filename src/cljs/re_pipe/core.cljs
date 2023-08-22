@@ -29,19 +29,22 @@
 
 ;(println (model/now-date-time))
 
-; REFRAME docs
+; REAGENT basis for re-frame
+; https://github.com/reagent-project/reagent/blob/master/doc/CreatingReagentComponents.md
+
+; RE-FRAME docs
 ; https://github.com/Day8/re-frame/blob/2ccd95c397927c877fd184b038e4c754221a502d/docs/Effects.md
 
-; REFRAME from Eric Normand
+; RE-FRAME from Eric Normand
 ; https://ericnormand.me/guide/re-frame-building-blocks
 
 ; REACTIVE from db to ui
 ; postgres notifications: reactive... https://yogthos.net/posts/2016-11-05-LuminusPostgresNotifications.html
 
-; TYPICAL Problem
+; RE-FRAME TYPICAL Problem
 ; local state & laggy input: https://github.com/day8/re-frame/blob/master/docs/FAQs/laggy-input.md
 
-; COMPONENTS - but not : re-com
+; RE-FRAME COMPONENTS - but not : re-com
 ; Demo: https://re-com.day8.com.au/
 ; Doc: https://github.com/day8/re-com
 
@@ -360,7 +363,7 @@
 
 
 (comment ; this can be done by repl...
-  (println "switch to console to view this")
+  (println "X switch to console to view this")
   (js/alert "hallo from repl...")
   (do-strange)
   (reitit/route-names router)

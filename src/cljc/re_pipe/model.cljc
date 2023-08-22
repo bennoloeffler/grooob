@@ -3,11 +3,11 @@
     ;[debux.common.macro-specs :as ms]
     [belib.date-time :as bd]
     [tick.core :as t]
+    ;[clj-time.core :as ct]
     [tick.alpha.interval :as tai]
-    [belib.core :as bc]
+    ;[clojure.pprint :refer [pprint]]
+    [belib.core :as bc] ; also bc/pprint
     [belib.spec :as bs]
-    [belib.date-time :as dt]
-    [clojure.pprint :refer [pprint]]
     [belib.cal-week-year :as bcw]
     [re-pipe.model-spec :as ms :refer [example-model get-rand-project-id projects-ids-range resources-ids-range next-sequence-num]]
     [clojure.spec.alpha :as s]
@@ -15,12 +15,9 @@
     [clojure.test.check.generators :as gen]
     [playback.core]))
 
-
-
 (hyperfiddle.rcf/enable! true)
 
 (def d t/date)
-(def dt t/date-time)
 
 ;; just to load model.cljc in core.cljs (client, browser js) and in core.clj (server jvm)
 (defn now-date-time []
@@ -31,72 +28,172 @@
 
 (def test-model {:g/name "example-model"
                  :g/projects
-                 {"p1" {:g/entity-id "p1"
-                        :g/name      "p1"
-                        :g/end       (d "2022-04-01")
+                 {"p1" {:g/entity-id    "p1"
+                        :g/name         "p1"
+                        :g/sequence-num 1
+                        :g/end          (d "2022-04-01")
                         :g/tasks
                         {"tid-1" {:g/entity-id     "tid-1"
                                   :g/start         (d "2024-04-01")
                                   :g/end           (d "2024-04-20")
-                                  :g/resource-id   "engineering"
+                                  :g/resource-id   "engineering-id"
                                   :g/capacity-need 15}
                          123     {:g/entity-id     123
                                   :g/start         (d "2024-04-10")
                                   :g/end           (d "2024-04-30")
-                                  :g/resource-id   "purchasing"
+                                  :g/resource-id   "purch-id"
                                   :g/capacity-need 10}}}
-                  "p2" {:g/entity-id "p2"
-                        :g/name      "p2"
-                        :g/end       (d "2022-04-01")
+                  "p2" {:g/entity-id    "p2"
+                        :g/name         "p2"
+                        :g/sequence-num 2
+                        :g/end          (d "2022-04-01")
                         :g/tasks
                         {"tid-2" {:g/entity-id     "tid-2"
                                   :g/start         (d "2022-04-01")
                                   :g/end           (d "2022-04-20")
-                                  :g/resource-id   "engineering"
+                                  :g/resource-id   "engineering-id"
                                   :g/capacity-need 15}
                          1234    {:g/entity-id     1234
                                   :g/start         (d "2022-04-10")
                                   :g/end           (d "2022-04-30")
-                                  :g/resource-id   "purchasing"
+                                  :g/resource-id   "purch-id"
                                   :g/capacity-need 10}}}}
 
-                 :g/pipelines
-                 {123 {:g/entity-id         123
-                       :g/name              "abc"
-                       :g/max-ip            12
-                       ; sequence
-                       :g/projects-sequence ["p1"]}
-                  12  {:g/entity-id         123
-                       :g/name              "abc"
-                       :g/max-ip            12
-                       ; sequence
-                       :g/projects-sequence ["p2"]}}
+                 #_:g/pipelines
+                 #_{123 {:g/entity-id         123
+                         :g/name              "abc"
+                         :g/max-ip            12
+                         ; sequence
+                         :g/projects-sequence ["p1"]}
+                    12  {:g/entity-id         123
+                         :g/name              "abc"
+                         :g/max-ip            12
+                         ; sequence
+                         :g/projects-sequence ["p2"]}}
                  :g/resources
-                 {"engineering" {:g/entity-id   "engineering"
-                                 :g/name        "Engineering X"
-                                 :g/norm-capa   {:g/yellow 15 :g/red 25}
-                                 :g/change-capa [[(d "2022-04-30") {:g/yellow 25 :g/red 35}]
-                                                 [(d "2022-04-30") {:g/yellow 25 :g/red 35}]]}
-                  "purchasing"  {:g/entity-id   "engineering"
-                                 :g/name        "Purchasing 23"
-                                 :g/norm-capa   {:g/yellow 15 :g/red 25}
-                                 :g/change-capa [[(d "2022-04-30")
-                                                  {:g/yellow 25 :g/red 35}]]}
-                  "assembly"    {:g/entity-id   "assembly"
-                                 :g/name        "ass 23"
-                                 :g/norm-capa   {:g/yellow 15 :g/red 25}
-                                 :g/change-capa [[(d "2022-04-30")
-                                                  {:g/yellow 25 :g/red 35}]]}}
+                 ; TODO: valiate, that :g/entity-id equals the key
+                 {"engineering-id" {:g/entity-id    "engineering-id"
+                                    :g/name         "Engineering X"
+                                    :g/sequence-num 1
+                                    :g/norm-capa    {:g/yellow 15 :g/red 25}
+                                    :g/change-capa  [[(d "2022-04-30") {:g/yellow 25 :g/red 35}]
+                                                     [(d "2022-04-30") {:g/yellow 25 :g/red 35}]]}
+                  "purch-id"       {:g/entity-id    "purch-id"
+                                    :g/name         "Purchasing 23"
+                                    :g/sequence-num 3
+                                    :g/norm-capa    {:g/yellow 15 :g/red 25}
+                                    :g/change-capa  [[(d "2022-04-30")
+                                                      {:g/yellow 25 :g/red 35}]]}
+                  111111           {:g/entity-id    111111
+                                    :g/name         "assembly 23"
+                                    :g/sequence-num 2
+                                    :g/norm-capa    {:g/yellow 15 :g/red 25}
+                                    :g/change-capa  [[(d "2022-04-30")
+                                                      {:g/yellow 25 :g/red 35}]]}}
 
                  :g/load
-                 {"engineering" {:g/total-load    {693 24.0 694 26.0}
-                                 :g/tasks-details {693 {123  7
-                                                        1234 2}}}
-                  "assembly"    {:g/total-load    {}
-                                 :g/tasks-details {693 {123  7
-                                                        1234 2}
-                                                   696 {"tid-1" 70
-                                                        "tid-2" 20}}}}})
+                 {"engineering-id" {:g/total-load    {693 24.0 694 26.0}
+                                    :g/tasks-details {693 {123  7
+                                                           1234 2}}}
+                  "purch-id"       {:g/total-load    {}
+                                    :g/tasks-details {693 {123  7
+                                                           1234 2}
+                                                      696 {"tid-1" 70
+                                                           "tid-2" 20}}}}})
+
+
+
+(defn sort-tasks-map-by-res
+  "Assoc and reset DO NOT WORK,
+  because the value is NOT yet the map,
+  when the comparator for the new element is called."
+  [tasks-map res-vec]
+  (into (sorted-map-by (fn [key-a key-b]
+                         (let [a-vals [(.indexOf res-vec (:g/resource-id (get tasks-map key-a)))
+                                       ;(get-in tasks-map [key-a :g/end])
+                                       (str key-a)]
+                               b-vals [(.indexOf res-vec (:g/resource-id (get tasks-map key-b)))
+                                       ;(get-in tasks-map [key-b :g/end])
+                                       (str key-b)]
+                               comp   (compare a-vals b-vals)]
+                           ;(println "a:" a-vals "b:" b-vals "comp: " comp)
+                           comp)))
+        tasks-map))
+
+
+#_(declare resource-id-sequence)
+(def resource-order ["engineering-id" 111111 "purch-id"] #_(resource-id-sequence test-model))
+; ["engineering-id" 111111 "purch-id"]
+(def test-tasks {"tid-5" {:g/entity-id     "tid-5",
+                          :g/start         (d "2024-04-01")
+                          :g/end           (d "2024-04-20")
+                          :g/resource-id   111111,
+                          :g/capacity-need 15}
+                 "tid-4" {:g/entity-id     "tid-4",
+                          :g/start         (d "2024-04-01")
+                          :g/end           (d "2026-04-20")
+                          :g/resource-id   "purch-id",
+                          :g/capacity-need 15}
+
+                 "tid-3" {:g/entity-id     "tid-3",
+                          :g/start         (d "2024-04-01")
+                          :g/end           (d "2021-04-20")
+                          :g/resource-id   "engineering-id",
+                          :g/capacity-need 15},
+
+                 "tid-2" {:g/entity-id     "tid-2",
+                          :g/start         (d "2024-04-01")
+                          :g/end           (d "2024-04-20")
+                          :g/resource-id   "engineering-id",
+                          :g/capacity-need 15}
+
+                 "tid-1" {:g/entity-id     "tid-1",
+                          :g/start         (d "2024-04-01")
+                          :g/end           (d "2024-04-20")
+                          :g/resource-id   "engineering-id",
+                          :g/capacity-need 15}
+
+                 124     {:g/entity-id     123,
+                          :g/start         (d "2024-04-10")
+                          :g/end           (d "2024-04-30")
+                          :g/resource-id   "purch-id",
+                          :g/capacity-need 10}
+
+                 123     {:g/entity-id     123,
+                          :g/start         (d "2024-04-10")
+                          :g/end           (d "2024-04-30")
+                          :g/resource-id   "purch-id",
+                          :g/capacity-need 10}})
+
+
+(tests
+  (keys (sort-tasks-map-by-res test-tasks resource-order))
+  := '("tid-1" "tid-2" "tid-3" "tid-5" 123 124 "tid-4")
+  ;'("tid-3" "tid-1" "tid-2" "tid-5" 123 124 "tid-4"))
+
+  nil)
+
+(comment
+  (type test-tasks) ; ArrayMap or HashMap
+  ; OTHER TYPE!
+  (type (sort-tasks-map-by-res test-tasks resource-order))
+  (assoc (into (sorted-map) {:c 1 :a 10}) :b 33)
+  (def sorted-tasks (sort-tasks-map-by-res test-tasks resource-order))
+  (into (into
+          sorted-tasks
+          {"tid-12"
+           {:g/entity-id     "tid-12",
+            :g/start         (d "2024-04-01")
+            :g/end           (d "2025-04-20")
+            :g/resource-id   111111,
+            :g/capacity-need 15}})
+        {":nothing" {:g/resource-id 111111}})
+
+  (compare (d "2024-04-09") (d "2024-04-10"))
+  (sort-tasks-map-by-res test-tasks resource-order)
+  (.indexOf [1 2 3 4] 3)
+  (.indexOf resource-order "purch-id")
+  (sort-by #(.indexOf resource-order (:g/resource-id %)) (:g/tasks (get (:g/projects test-model) "p1"))))
 
 ;;-------------------------
 ;; API
@@ -114,13 +211,128 @@
   (some? (new-model "a-model")) := true)
 
 (defn add-resource
-  [model resource-name yellow-limit red-limit]
+  [model resource-id yellow-limit red-limit]
   {:post [(bs/validate :g/model %)]}
-  (assoc-in model [:g/resources resource-name] {:g/entity-id    resource-name
-                                                :g/name         resource-name
-                                                :g/sequence-num (ms/next-sequence-num)
-                                                :g/norm-capa    {:g/yellow yellow-limit :g/red red-limit}
-                                                :g/change-capa  []}))
+  (assoc-in model [:g/resources resource-id] {:g/entity-id    resource-id
+                                              :g/name         (str "res-" resource-id)
+                                              :g/sequence-num (ms/next-sequence-num)
+                                              :g/norm-capa    {:g/yellow yellow-limit :g/red red-limit}
+                                              :g/change-capa  []}))
+
+(defn resource-id-sequence
+  "Deliver the sorted sequence of resources ids
+  based on :g/sequence-num."
+  [model]
+  (as-> (:g/resources model) $
+        (bc/sorted-map-by-keys $ :g/sequence-num)
+        (vals $)
+        (mapv :g/entity-id $)))
+
+(defn id-order
+  "Deliver the sorted order of e.g. :g/resources ids
+  based on :g/sequence-num."
+  [model key]
+  (as-> (key model) $
+        (bc/sorted-map-by-keys $ :g/sequence-num)
+        (vals $)
+        (mapv :g/entity-id $)))
+
+
+(defn resource-id-idx-map
+  "Delivers a map of the order of the
+  resources in the model based on sequence-num -
+  but strictly ordered from 0 to n in steps by 1."
+  [model]
+  (let [order (resource-id-sequence model)]
+    (into {}
+          (map-indexed (fn [idx element] [element idx])
+                       order))))
+
+(defn id-idx-map
+  "Delivers a map of the order of the
+  e.g. :g/resources in the model based on sequence-num -
+  but strictly ordered from 0 to n in steps by 1."
+  [model key]
+  (let [order (id-order model key)]
+    (into {}
+          (map-indexed (fn [idx element] [element idx])
+                       order))))
+
+
+(comment
+  (resource-id-sequence test-model)
+  (resource-id-idx-map test-model)
+  (id-order test-model :g/resources)
+  (id-order test-model :g/projects)
+  (id-idx-map test-model :g/projects))
+
+(tests
+  (s/valid? :g/model test-model) := true
+  (resource-id-sequence test-model) := ["engineering-id" 111111 "purch-id"]
+  (resource-id-idx-map test-model) := {"engineering-id" 0, 111111 1, "purch-id" 2})
+
+(comment
+  (get [3 4 5] -1))
+
+(defn move-up-resource
+  [model resource-id]
+  {:post [(bs/validate :g/model %)]}
+  (let [resource-id-order    (resource-id-sequence model)
+        resource-id-map      (resource-id-idx-map model)
+        resource-idx-current (resource-id-map resource-id)
+        resource-idx-before  (dec resource-idx-current)]
+    (assert resource-idx-current (str "'" resource-id "' should be a valid key for resource - but isnt."))
+
+    (if-let [resource-id-before (get resource-id-order resource-idx-before)]
+      (let [sequence-num-current (get-in model [:g/resources resource-id :g/sequence-num])
+            sequence-num-before  (get-in model [:g/resources resource-id-before :g/sequence-num])]
+        (-> model
+            (assoc-in [:g/resources resource-id :g/sequence-num] sequence-num-before)
+            (assoc-in [:g/resources resource-id-before :g/sequence-num] sequence-num-current)))
+      model)))
+
+#_(defn move-up
+    [model id key]
+    {:post [(bs/validate :g/model %)]}
+    (let [id-order    (id-order model key)
+          id-map      (id-idx-map model key)
+          idx-current (id-map id)
+          idx-before  (dec idx-current)]
+      (assert idx-current (str "'" id "' should be a valid key in " key " - but isnt."))
+
+      (if-let [id-before (get id-order idx-before)]
+        (let [sequence-num-current (get-in model [key id :g/sequence-num])
+              sequence-num-before  (get-in model [key id-before :g/sequence-num])]
+          (-> model
+              (assoc-in [key id :g/sequence-num] sequence-num-before)
+              (assoc-in [key id-before :g/sequence-num] sequence-num-current)))
+        model)))
+
+(defn move-up-down
+  [model id key y]
+  {:post [(bs/validate :g/model %)]}
+  (let [id-order    (id-order model key)
+        id-map      (id-idx-map model key)
+        idx-current (id-map id)
+        idx-before  (+ idx-current y)]
+    (assert idx-current (str "'" id "' should be a valid key in " key " - but isnt."))
+
+    (if-let [id-before (get id-order idx-before)]
+      (let [sequence-num-current (get-in model [key id :g/sequence-num])
+            sequence-num-before  (get-in model [key id-before :g/sequence-num])]
+        (-> model
+            (assoc-in [key id :g/sequence-num] sequence-num-before)
+            (assoc-in [key id-before :g/sequence-num] sequence-num-current)))
+      model)))
+
+
+(comment
+  (def resource-id-order (resource-id-sequence test-model))
+  (def resource-id-map (resource-id-idx-map test-model))
+  (move-up-resource test-model "purch-id")
+  (move-up test-model "purch-id" :g/resources)
+  (move-up test-model "p2" :g/projects))
+
 
 #_(defn add-pipeline
     [model pipeline-name max-ip]
@@ -135,48 +347,23 @@
              (new-model "a-model")
              "pip"
              20)) := true)
-
-; TODO move to belib core
-(defn sorted-map-by-key [m sort-by-key]
-  (into (sorted-map-by (fn [key1 key2]
-                         (- (compare [(get-in m [key2 sort-by-key]) key2]
-                                     [(get-in m [key1 sort-by-key]) key1]))))
-        m))
-
 (comment
-  (type (sorted-map-by-key {} :nix))
-  (sorted-map-by-key {:A {:g/sequence-num 1 :val 23}
-                      :B {:g/sequence-num 2 :val 22}
-                      :C {:g/sequence-num 2 :val 53}
-                      :D {:g/sequence-num 5 :val 73}
-                      :E {:g/sequence-num 1 :val 10}
-                      :F {:g/sequence-num 1 :val 11}}
-                     :g/sequence-num)
-  (let [results {:A {:sequence-num 1 :val 23}
-                 :B {:sequence-num 2 :val 22}
-                 :C {:sequence-num 2 :val 53}
-                 :D {:sequence-num 5 :val 73}
-                 :E {:sequence-num 1 :val 10}
-                 :F {:sequence-num 1 :val 11}}]
-    (into (sorted-map-by (fn [key1 key2]
-                           (compare [(get-in results [key2 :sequence-num]) key2]
-                                    [(get-in results [key1 :sequence-num]) key1])))
+  (sort-by - compare [1 3 5 7 4 3]))
 
 
-          results)))
 
 (defn add-project
-  [model project-name end]
+  [model project-id end]
   #_{:pre  [((fn pipeline-exists [] (get-in model [:g/pipelines pipeline])))]
      :post [(bs/validate :g/model %)]}
 
   (-> model
-      (assoc-in [:g/projects project-name] {:g/entity-id    project-name
-                                            :g/name         project-name #_(str "pro-" project-name)
-                                            :g/end          (if end end (d "2024-01-01"))
-                                            :g/sequence-num (next-sequence-num)
-                                            :g/tasks        {}})
-      #_(update-in [:g/pipelines pipeline :g/projects-sequence] conj project-name)))
+      (assoc-in [:g/projects project-id] {:g/entity-id    project-id
+                                          :g/name         (str "pro-" project-id)
+                                          :g/end          (if end end (d "2024-01-01"))
+                                          :g/sequence-num (next-sequence-num)
+                                          :g/tasks        {}})
+      #_(update-in [:g/pipelines pipeline :g/projects-sequence] conj project-id)))
 
 #_(comment
     (-> example-model
@@ -197,6 +384,7 @@
 
 (defn new-task [task-id start end resource-id capacity-need]
   (let [t {:g/entity-id     task-id
+           ; TODO add name (something like a note or description?)
            :g/start         start
            :g/end           end
            :g/resource-id   resource-id
@@ -224,7 +412,7 @@
   [task abs-week-map]
   #_{:pre  [(bs/validate :g/task task)]
      :post [(bs/validate :g/load %)]}
-  (let [all-days          (dt/list-of-all-days (:g/start task) (:g/end task))
+  (let [all-days          (bd/list-of-all-days (:g/start task) (:g/end task))
         capa-per-day      (/ (:g/capacity-need task) (count all-days))
         days-in-weeks     (map #(first (abs-week-map %)) all-days)
         days-sum-in-weeks (frequencies days-in-weeks)
@@ -396,11 +584,11 @@
         (update-project-start-end project-id))))
 
 (tests
-  (let [task     (t (d "2023-04-11") (d "2023-04-21") "engineering" 10)
+  (let [task     (t (d "2023-04-11") (d "2023-04-21") "engineering-id" 10)
         task-id  (:g/entity-id task)
         ex-added (add-task test-model "p1" task)
         ;_ (bc/validate :g/model ex-added)
-        load-eng (get-in ex-added [:g/load "engineering"])]
+        load-eng (get-in ex-added [:g/load "engineering-id"])]
     ;; the capa is added in load
     (get-in load-eng [:g/total-load 693]) := 30.0
     ;; the task is aded in project
@@ -674,15 +862,32 @@
 ;; a project has a name, a start-cw and a len-cw
 
 (defn view-model [model]
-  (let [vals-of-projects (map #(conj (vec (:g/start-end-project-cw %))
-                                     (:g/name %)
-                                     (:g/entity-id %))
-                              (vals (:g/projects model)))
-        projects         (map-indexed (fn [idx e] (let [e     e
-                                                        start (-> e first first)
-                                                        end   (first (second e))]
-                                                    {:idx idx :start-x start :len-x (- end start) :name (last e) :id (last e)}))
-                                      vals-of-projects)]
+  (let [#_vals-of-projects #_(map #(conj (vec (:g/start-end-project-cw %))
+                                         (:g/name %)
+                                         (:g/entity-id %))
+                                  (vals (:g/projects model)))
+        #_projects         #_(map-indexed (fn [idx e] (let [e     e
+                                                            start (-> e first first)
+                                                            end   (first (second e))]
+                                                        {#_:idx #_idx :start-x start :len-x (- end start) :name (last e) :id (last e)}))
+                                          vals-of-projects)
+
+
+        view-projects (map (fn [raw-project]
+                             (let [start (-> raw-project
+                                             :g/start-end-project-cw
+                                             ffirst)
+                                   end   (-> raw-project
+                                             :g/start-end-project-cw
+                                             second
+                                             first)]
+                               {:start-x start
+                                :len-x   (- end start)
+                                :name    (:g/name raw-project)
+                                :id      (:g/entity-id raw-project)}))
+                           ; TODO sort here? by :g/sequence-num?
+                           (vals (bc/sorted-map-by-keys (:g/projects model)
+                                                        :g/sequence-num)))]
     {:min-cw   (->> model
                     :g/start-end-model-cw
                     first
@@ -691,7 +896,7 @@
                     :g/start-end-model-cw
                     second
                     first)
-     :projects projects}))
+     :projects view-projects}))
 
 
 
@@ -704,22 +909,29 @@
   :len-x is the len of the element
   :name is the name of the element
   :id is the id of the corresponding original element"
-  [project]
-  (let [;project (sorted-map-by-sequence project)
-        task-fn (fn [idx task]
-                  {:idx          idx ; TODO check, if id of task would be better
-                   :start-x      (first (:g/start-cw task)) ;start
-                   :len-x        (- (first (:g/end-cw task))
+  [project model]
+  (let [resources    (:g/resources model)
+        ;project (sorted-map-by-sequence project)
+        task-fn      (fn [task]
+                       {:start-x (first (:g/start-cw task)) ;start
+                        :len-x   (- (first (:g/end-cw task))
                                     (first (:g/start-cw task))) ;len
-                   :name         (:g/resource-id task)
-                   :sequence-num (:g/sequence-num task)
-                   :id           (:g/entity-id task)})] ; ressource
+                        :name    (get-in model [:g/resources (:g/resource-id task) :g/name])
+                        ;:sequence-num (:g/resource-id task)
+                        :id      (:g/entity-id task)}) ; ressource
+        sorted-tasks (sort-tasks-map-by-res
+                       (-> project :g/tasks)
+                       (resource-id-sequence model))]
+
+    ;(println model)
     (when project
       {:name     (:g/name project)
        :min-cw   (first (first (:g/start-end-project-cw project)))
        :max-cw   (first (second (:g/start-end-project-cw project)))
-       :projects (vec (sort-by :sequence-num (map-indexed task-fn
-                                                          (vals (:g/tasks project)))))
+       ; TODO: sort 1. by sequence of resources AND
+       ;            2. by finish date
+       :projects (vec (map task-fn
+                           (vals sorted-tasks)))
        #_(vec (sort-by :sequence-num (map-indexed task-fn
                                                   (vals (:g/tasks project)))))})))
 ;:original project}))
@@ -790,8 +1002,8 @@
                                   "engineering"
                                   200)))) := {:min-cw   696
                                               :max-cw   700
-                                              :projects [{:idx 0 :start-x 696 :len-x 4 :name "new-proj-1" :id "new-proj-1"}
-                                                         {:idx 1 :start-x 696 :len-x 4 :name "new-proj-2" :id "new-proj-2"}]}
+                                              :projects [{:start-x 696 :len-x 4 :name "pro-new-proj-1" :id "new-proj-1"}
+                                                         {:start-x 696 :len-x 4 :name "pro-new-proj-2" :id "new-proj-2"}]}
 
   nil)
 ;:g/projects
@@ -814,8 +1026,12 @@
   (t/> (d "2025-01-01") (d "2024-01-01"))
   (t/<< (d "2023-01-01") 5)
   (dec (t/days (t/duration (tai/new-interval (d "2023-01-01") (d "2023-01-02")))))
+  (dec (t/days (t/duration (tai/new-interval (d "2023-01-01") (d "2024-01-01")))))
   (t/between (d "2023-01-01") (d "2024-01-01"))
-  (t/duration)
+  (type (t/between (d "2023-01-01") (d "2024-01-01")))
+  (t/days (t/duration (tai/new-interval (d "2023-01-01") (d "2024-01-01"))))
+  (ct/in-days (tai/new-interval (d "2023-01-01") (d "2024-01-01")))
+  ; #_(t/duration))
 
   (def tasks (->> (gen/sample (s/gen :g/task) 100)
                   (map #(shorten-task %))))
@@ -835,19 +1051,24 @@
   (s/valid? :g/model m)
   (def m-moved (time (doall (reduce (fn [m _] (move-task m pid tid 1)) m (range 1000)))))
   (s/valid? :g/model m-moved)
-  (repl)
-  (insp/inspect-tree m-moved)
 
-  (require '[portal.api :as p])
-  (add-tap #'p/submit)
-  (def p (p/open {:launcher :intellij}))
-  (tap> m-moved)
 
-  (require '[clj-async-profiler.core :as prof])
-  (prof/profile (do
-                  (reduce (fn [m _] (move-task m pid tid 1)) m (range 10))
-                  nil))
-  (prof/serve-ui 8080)
+
+  ; TODO: move to a better place...
+
+  #_(repl)
+  #_(insp/inspect-tree m-moved)
+
+  #_(require '[portal.api :as p])
+  #_(add-tap #'p/submit)
+  #_(def p (p/open {:launcher :intellij}))
+  #_(tap> m-moved)
+
+  #_(require '[clj-async-profiler.core :as prof])
+  #_(prof/profile (do
+                    (reduce (fn [m _] (move-task m pid tid 1)) m (range 10))
+                    nil))
+  #_(prof/serve-ui 8080)
 
   nil)
 

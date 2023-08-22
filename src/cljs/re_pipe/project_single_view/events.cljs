@@ -41,12 +41,12 @@
 
                 ;; Move TASK with shift <- -> AD
 
-                [[:project/task-move component-id 1]
+                [[:project/task-move component-id _model 1]
                  ;; will be triggered if
                  [{:keyCode keycodes/RIGHT :shiftKey true}]
                  [{:keyCode keycodes/D :shiftKey true}]] ;  AD
 
-                [[:project/task-move component-id -1]
+                [[:project/task-move component-id _model -1]
                  ;; will be triggered if
                  [{:keyCode keycodes/LEFT :shiftKey true}]
                  [{:keyCode keycodes/A :shiftKey true}]] ;  AD
@@ -187,21 +187,30 @@
 
 (rf/reg-event-fx
   :project/task-move
-  (fn [cofx [_ component-id x]]
-    (let [db            (:db cofx)
+  (fn [cofx [_ component-id _model x]]
+    (let [db           (:db cofx)
           ;; TODO this :projects-overview-form s path is HARDCODED!
-          pr-cross      (get-in db [:view :projects-overview-form :cross])
-          pr-keys       (vec (keys (get-in db [:model :g/projects])))
-          pr-id         (pr-keys (:y pr-cross))
+          pr-cross     (get-in db [:view :projects-overview-form :cross])
+          pr-keys      (vec (keys (get-in db [:model :g/projects])))
+          pr-id        (pr-keys (:y pr-cross))
 
-          component-key (keyword component-id)
-          ta-cross      (get-in db [:view component-key :cross])
-          ta-keys       (vec (keys (model/sorted-map-by-key
-                                     (get-in db [:model :g/projects pr-id :g/tasks])
-                                     :g/sequence-num)))
-          ta-id         (ta-keys (:y ta-cross))]
+          comp-key     (keyword component-id)
+          ta-cross     (get-in db [:view comp-key :cross])
+          cross-x      (:x ta-cross)
+          ta-keys      (vec (keys (model/sort-tasks-map-by-res
+                                    (get-in db [:model :g/projects pr-id :g/tasks])
+                                    (model/resource-id-sequence (:model db)))))
+          ta-id        (ta-keys (:y ta-cross))
+          size-x       (- (:max-cw @_model)
+                          (:min-cw @_model))
+          in-box       (not (or (>= (+ cross-x x) size-x)
+                                (<= (+ cross-x x) 0)))
+          update-cross (fn [model value]
+                         (if in-box
+                           (update-in model [:view comp-key :cross :x] + value)
+                           model))]
       ;(println "pr: " pr-id ", ta: " ta-id)
       {:db       (-> db
                      (update :model model/move-task pr-id ta-id (* 7 x))
-                     (update-in [:view component-key :cross :x] + x))
+                     (update-cross x))
        :dispatch [:grid-view/cross-visible]})))

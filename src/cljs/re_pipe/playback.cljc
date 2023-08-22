@@ -1,5 +1,9 @@
 (ns re-pipe.playback
-  (:require [playback.core]))
+  (:require [playback.core]
+            #?(:cljs [debux.cs.core :as d :refer-macros [clog clogn dbg dbgn break
+                                                         clog_ clogn_ dbg_ dbgn_ break_]]
+               :clj  [debux.cs.core :as d :refer [clog clogn dbg dbgn break
+                                                  clog_ clogn_ dbg_ dbgn_ break_]])))
 
 ; TODO: move to belib.playback?
 
@@ -28,13 +32,18 @@
             #>> (->> (range (* a b))
                      (map inc)
                      ; 4. try change the 3 to 2 and reload (eval in repl)
-                     (map #(* 3 %))
+                     (map #(* 2 %))
                      (map str))))
 
+
   ; 3. eval in repl
-  (make-something 2 3)
+  (make-something 4 6)
 
   ; 5. select some data in portal and eval this...
   (println #><[])
+
+  ; 6. BUT compare those both:
+  (dbgn (+ 3 (- 4 5)))
+  #>> (+ 3 (- 4 5))
 
   nil)

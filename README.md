@@ -15,12 +15,14 @@ View everything in Realtime.
 ## TODOs, next steps
 
 - model
-    - make the api generate proper IDs inside the model (project, task, resource)
+    - ok: make the api generate different names and ids and make sure, names are not used for ids.
+    - ok: make the api generate proper IDs inside the model (project, task, resource)
     - make the api generate proper sequence-num and have a move-up and move-down for projects and resources
-    - make the tasks appear in the sequence of the ressources
-    - remove pipeline in the model
-    - check, if idx in view model is needed - use id instead for
+    - ok: make the tasks appear in the sequence of the ressources
+    - ok: remove pipeline in the model
+    - ok: check, if idx in view model is needed - e.g. use id instead for key in view
 - view
+    - ok: prevent the curser from disappearing while moving tasks
     - make a project task details view.
     - make the load view (in weeks and in months)
     - make an simple capa-editor (maybe instaparse?)
@@ -44,20 +46,18 @@ View everything in Realtime.
     - data
     - data-details
 
-- create subdirs for moduls
+- ok: create subdirs for moduls
 - switch to single project window
 - save data model to localstorage as basis for load and project window
 - show "second window" with
     - load details
     - project details
-- :view/cross-visible does not work in safari
+- bug :view/cross-visible does not work in safari
 
 ## Features / Releases
 
 V0.1.0
 
-- remove size from db
-- remove offest-cw and pr
 - read ONE data file
     - Projekt-Start-End-Abt-Kapa.txt
     - project-start-end-dep-capa.txt

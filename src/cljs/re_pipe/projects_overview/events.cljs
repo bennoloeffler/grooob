@@ -14,7 +14,7 @@
             [re-pipe.model :as model]
             [re-pipe.model-spec :as ms]
             [re-pipe.utils :as utils]
-            [belib.cal-week-year :as bc]
+            [belib.core :as bc]
             [ajax.core :as ajax]
             [goog.history.EventType :as HistoryEventType]
             [time-literals.read-write]
@@ -42,12 +42,23 @@
 
                 ;; Move PROJECT with shift <- -> AD
 
-                [[:overview/project-move component-id 1]
+                [[:overview/project-move-up-down component-id _model -1]
+                 ;; will be triggered if
+                 [{:keyCode keycodes/UP :shiftKey true}]
+                 #_[{:keyCode keycodes/W :shiftKey true}]]
+
+                [[:overview/project-move-up-down component-id _model 1]
+                 ;; will be triggered if
+                 [{:keyCode keycodes/DOWN :shiftKey true}]
+                 #_[{:keyCode keycodes/S :shiftKey true}]]
+
+
+                [[:overview/project-move component-id _model 1]
                  ;; will be triggered if
                  [{:keyCode keycodes/RIGHT :shiftKey true}]
                  [{:keyCode keycodes/D :shiftKey true}]] ;  AD
 
-                [[:overview/project-move component-id -1]
+                [[:overview/project-move component-id _model -1]
                  ;; will be triggered if
                  [{:keyCode keycodes/LEFT :shiftKey true}]
                  [{:keyCode keycodes/A :shiftKey true}]] ;  AD
@@ -139,25 +150,63 @@
     (let [comp-key            (keyword component-id)
           current-project-key (-> (:model db)
                                   :g/projects
+                                  (bc/sorted-map-by-keys :g/sequence-num)
                                   keys
                                   vec
                                   (get (-> db :view comp-key :cross :y)))
           current-project     (-> (:model db)
                                   :g/projects
                                   (get current-project-key))]
-      (model/current-project current-project))))
+      (model/current-project current-project (:model db)))))
 
 
 (rf/reg-event-fx
   :overview/project-move
-  (fn [cofx [_ component-id x]]
-    (let [comp-key (keyword component-id)
-          db       (:db cofx)
-          cross    (get-in db [:view comp-key :cross])
-          pr-keys  (vec (keys (get-in db [:model :g/projects])))
-          pr-id    (pr-keys (:y cross))]
+  (fn [cofx [_ component-id _model x]]
+    (let [comp-key     (keyword component-id)
+          db           (:db cofx)
+          cross        (get-in db [:view comp-key :cross])
+          cross-x      (:x cross)
+          pr-keys      (vec (keys (bc/sorted-map-by-keys
+                                    (get-in db [:model :g/projects])
+                                    :g/sequence-num)))
+          pr-id        (pr-keys (:y cross))
+          size-x       (- (:max-cw @_model)
+                          (:min-cw @_model))
+          in-box       (not (or (>= (+ cross-x x) size-x)
+                                (<= (+ cross-x x) 0)))
+          update-cross (fn [model value]
+                         (if in-box
+                           (update-in model [:view comp-key :cross :x] + value)
+                           model))]
+
+      ;size-y        (count (:projects @_model))]
       {:db       (-> db
                      (update :model model/move-project pr-id (* 7 x))
-                     (update-in [:view comp-key :cross :x] + x))
+                     (update-cross x))
        :dispatch [:grid-view/cross-visible]})))
 
+(rf/reg-event-fx
+  :overview/project-move-up-down
+  (fn [cofx [_ component-id _model y]]
+    (let [comp-key     (keyword component-id)
+          db           (:db cofx)
+          cross        (get-in db [:view comp-key :cross])
+          cross-y      (:y cross)
+          pr-keys      (vec (keys (bc/sorted-map-by-keys
+                                    (get-in db [:model :g/projects])
+                                    :g/sequence-num)))
+          pr-id        (pr-keys cross-y)
+          size-y       (count (:projects @_model))
+          in-box       (and (< (+ cross-y y) size-y)
+                            (>= (+ cross-y y) 0))
+          update-cross (fn [model value]
+                         (if in-box
+                           (update-in model [:view comp-key :cross :y] + value)
+                           model))]
+
+      ;size-y        (count (:projects @_model))]
+      {:db       (-> db
+                     (update :model model/move-up-down pr-id :g/projects y)
+                     (update-cross y))
+       :dispatch [:grid-view/cross-visible]})))
