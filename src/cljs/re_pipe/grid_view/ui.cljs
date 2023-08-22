@@ -130,27 +130,32 @@
                  :stroke-width   (/ g 2)
                  :stroke-opacity 0.3}]]))))
 
-(defn square [component-id x y]
-  (let [grid (rf/subscribe [:sub/data-path [:view (keyword component-id) :grid]])]
-    (fn [component-id x y]
-      (let [g @grid]
+(defn square [component-id _cross x y]
+  (let [_grid (rf/subscribe [:sub/data-path [:view (keyword component-id) :grid]])]
+    ;_cross (rf/subscribe [:sub/data-path [:view (keyword component-id) :cross]])]
+    (fn [component-id _cross x y]
+      (let [g   @_grid
+            yg  (* (:y @_cross) g)
+            sel (== yg y)
+            col (if sel "black" "white")]
         [:rect {:x            x
                 :y            y
                 :width        g
                 :height       g
                 :stroke       "white"
                 :stroke-width 1
-                :fill         "black"
-                :fill-opacity 0.1}]))))
+                :fill         col
+                :fill-opacity 0.2}]))))
 
-; TODO split names and square
-(defn one-y-line [component-id row start-cw len-cw name id]
+; TODO split names and square?
+(defn one-y-line [component-id _cross row start-cw len-cw name id]
   (let [grid           (rf/subscribe [:sub/data-path [:view (keyword component-id) :grid]])
         browser-scroll (rf/subscribe [:grid-view/browser-scroll])]
-    (fn [component-id row start-cw len-cw name id]
+    ;_cross         (rf/subscribe [:sub/data-path [:view (keyword component-id) :cross]])]
+    (fn [component-id _cross row start-cw len-cw name id]
       (let [gx (* start-cw @grid)
             gy (* row @grid)]
-        (vec (cons :<> (conj (vec (map (fn [cw] [square component-id (+ gx (* cw @grid)) gy])
+        (vec (cons :<> (conj (vec (map (fn [cw] [square component-id _cross (+ gx (* cw @grid)) gy])
                                        (range len-cw)))
                              [:text.svg-non-select
                               {:x                 (+ (get-svg-x-offset component-id) (* 2 @grid))
@@ -162,16 +167,30 @@
                                :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
                               (str name)])))))))
 
-(defn map-one-y-line [component-id start-x-total row {:keys [start-x len-x name id]}]
-  [one-y-line component-id row (- start-x start-x-total) len-x name id])
+#_(defn map-one-y-line [component-id _cross start-x-total row {:keys [start-x len-x name id]}]
+    [one-y-line component-id _cross row (- start-x start-x-total) len-x name id])
 
 (defn y-axis [component-id _model]
-  (let [start-x-total (:min-cw @_model)
-        sorted-model  @_model #_(update @_model :projects model/sorted-map-by-key)
-        projects-html (vec (cons :<> (map-indexed (partial map-one-y-line component-id start-x-total)
-                                                  (:projects sorted-model))))]
-    projects-html))
+  (let [_cross (rf/subscribe [:sub/data-path [:view (keyword component-id) :cross]])]
+    (fn [component-id _model] (let [start-x-total (:min-cw @_model)
+                                    sorted-model  @_model #_(update @_model :projects model/sorted-map-by-key)
+                                    projects-html (vec (cons :<> (map-indexed
+                                                                   (fn [row {:keys [start-x len-x name id]}]
+                                                                     [one-y-line
+                                                                      component-id
+                                                                      _cross
+                                                                      row
+                                                                      (- start-x start-x-total)
+                                                                      len-x
+                                                                      name
+                                                                      id])
+                                                                   #_(partial map-one-y-line component-id _cross start-x-total)
+                                                                   (:projects sorted-model))))]
+                                projects-html))))
 
+(comment
+  ;(def part-fn (partial))
+  (map-indexed (fn [idx e] [idx e]) ["a" "b"]))
 
 (defn one-x-axis-element [text idx-x grid y]
   [:text.svg-non-select {:x                 (+ (* idx-x grid) (/ grid 2))

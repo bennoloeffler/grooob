@@ -21,7 +21,8 @@
             [luminus-transit.time :as time]
             [cognitect.transit :as transit]
             [re-pressed.core :as rp]
-            [re-pipe.projects-overview.events :as e])
+            [re-pipe.projects-overview.events :as e]
+            [re-pipe.re-comps.ui :as re-c])
 
   (:import goog.History
            [goog.events EventType KeyHandler]))
@@ -36,7 +37,7 @@
     (rf/dispatch-sync [:grid-view/init component-id])
     (fn []
       [:<>
-       [:div "projects overview"]
+       [re-c/overview-proj-details-menu]
        #_[:div "project: " (str (last (get (vec (:projects @model)) (:project @cross))))]
        ;[:pre (with-out-str (pprint @model))]
        ;[:pre (with-out-str (pprint @project))]

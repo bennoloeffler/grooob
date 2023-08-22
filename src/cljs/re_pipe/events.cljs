@@ -26,6 +26,18 @@
   (fn [_ [_ url-key params query]]
     {:common/navigate-fx! [url-key params query]}))
 
+;; GENERAL SUBSCRIPTION
+;; example (rf/subsribe :sub/data-path [:view :grid :x])
+;; (rf/reg-sub
+;;  :current-time
+;;  (fn [db _]
+;;    (:current-time db)))
+;; would be: (rf/subsribe :sub/data-path [:current-time])
+(rf/reg-sub
+  :sub/data-path
+  (fn [db [_ path]]
+    (get-in db path)))
+
 #_(rf/reg-event-db
     :set-docs
     (fn [db [_ docs]]
@@ -38,13 +50,10 @@
                     :uri             "/docs"
                     :response-format (ajax/raw-response-format)
                     :on-success      [:set-docs]}}))
-
 (rf/reg-event-db
   :common/set-error
   (fn [db [_ error]]
     (assoc db :common/error error)))
-
-
 
 ;; Define a co-effect to get the current time
 (rf/reg-cofx
@@ -63,7 +72,7 @@
           db   (:db cofx)]
       ;(println "time: " time)
       {:db (assoc db :current-time time)})))
-       ;:dispatch [:alert-blink]})))
+;:dispatch [:alert-blink]})))
 
 ;; Define a subscription that reads the current time from the app-db
 (rf/reg-sub
@@ -105,9 +114,9 @@
     (println "login error: " data)
     ;(assoc db :user "login failed")
     {
-     :fx  [ [:dispatch   [:set-alert (str (-> data :response :message))]]
-           #_[:http-xhrio {:method :GET  :url "http://somewhere.com/"}]
-           #_(when (> 2 3) [:full-screen true])]}))
+     :fx [[:dispatch [:set-alert (str (-> data :response :message))]]
+          #_[:http-xhrio {:method :GET :url "http://somewhere.com/"}]
+          #_(when (> 2 3) [:full-screen true])]}))
 
 (rf/reg-event-fx
   :user/login
@@ -116,7 +125,7 @@
     {
      :db         (-> (:db cofx)
                      (assoc :user-tmp user))
-                     ;(assoc :tmp-pw pw))
+     ;(assoc :tmp-pw pw))
 
      :http-xhrio {:method          :post
                   :params          {:user user :pw pw}
@@ -141,9 +150,9 @@
     ; :common/set-error
     ;(assoc db : "register failed")))
     {
-     :fx  [ [:dispatch   [:set-alert (str (-> data :response :message))]]
-           #_[:http-xhrio {:method :GET  :url "http://somewhere.com/"}]
-           #_(when (> 2 3) [:full-screen true])]}))
+     :fx [[:dispatch [:set-alert (str (-> data :response :message))]]
+          #_[:http-xhrio {:method :GET :url "http://somewhere.com/"}]
+          #_(when (> 2 3) [:full-screen true])]}))
 
 (rf/reg-event-fx
   :user/register
@@ -202,13 +211,13 @@
      ;                (assoc :tmp-user user)
      ;                (assoc :tmp-pw pw)
 
-     :http-xhrio {:method          :post
-                  :params          data
-                  :uri             "/api/logout"
-                  :format          (ajax/json-request-format)
-                  :response-format (ajax/raw-response-format {:keywords? true})
-                  :on-success      [:logout-success]
-                  :on-failure      [:logout-failure]}
+     :http-xhrio     {:method          :post
+                      :params          data
+                      :uri             "/api/logout"
+                      :format          (ajax/json-request-format)
+                      :response-format (ajax/raw-response-format {:keywords? true})
+                      :on-success      [:logout-success]
+                      :on-failure      [:logout-failure]}
      :dispatch-later {:ms 3000 :dispatch [:common/navigate! :home]}}))
 #_[:dispatch-later {:ms 200 :dispatch [:event-id1 "param"]}]
 
@@ -225,9 +234,9 @@
     ; :common/set-error
     ;(assoc db : "register failed")))
     {
-     :fx  [ [:dispatch   [:set-alert "ERROR: you are not logged in!"]]
-            #_[:http-xhrio {:method :GET  :url "http://somewhere.com/"}]
-            #_(when (> 2 3) [:full-screen true])]}))
+     :fx [[:dispatch [:set-alert "ERROR: you are not logged in!"]]
+          #_[:http-xhrio {:method :GET :url "http://somewhere.com/"}]
+          #_(when (> 2 3) [:full-screen true])]}))
 
 (rf/reg-event-fx
   :user/authorized

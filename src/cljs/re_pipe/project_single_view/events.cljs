@@ -149,10 +149,10 @@
     (let [component-key (keyword component-id)]
       (->> db :view component-key :cross))))
 
-(rf/reg-sub
-  :sub/data-path
-  (fn [db [_ path]]
-    (get-in db path)))
+#_(rf/reg-sub
+    :sub/data-path
+    (fn [db [_ path]]
+      (get-in db path)))
 
 
 

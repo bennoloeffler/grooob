@@ -2,6 +2,7 @@
   (:require
     [belib.core :as b]
     [re-frame.core :as rf]
+    [re-pipe.re-comps.ui :as re-c]
     [reagent.core :as reagent]
     [reagent.dom :as rd]
     [tick.core :as t]
@@ -24,7 +25,7 @@
     [re-pressed.core :as rp]
     [re-pipe.utils :as utils]
     [re-pipe.project-single-view.events :as e]
-    [re-pipe.project-single-view.core :as c]
+    ;[re-pipe.project-single-view.core :as c]
     [cuerdas.core :as str])
 
   (:import goog.History
@@ -46,7 +47,8 @@
     (rf/dispatch-sync [:grid-view/init component-id])
     (fn []
       [:<>
-       [:div "project single view: " (:name @_project)]
+       [re-c/overview-proj-details-menu]
+       [:div "project: " (:name @_project)]
        #_[:div "project: " (str (last (get (vec (:projects @model)) (:project @cross))))]
        ;[:pre (with-out-str (pprint @model))]
        ;[:pre (with-out-str (pprint @project))]

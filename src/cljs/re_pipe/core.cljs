@@ -1,6 +1,7 @@
 (ns re-pipe.core
   (:require
     [day8.re-frame.http-fx]
+    [re-pipe.re-comps.ui :as re-c]
     [reagent.dom :as rdom]
     [reagent.core :as r]
     [re-frame.core :as rf]
@@ -214,7 +215,8 @@
                  [nav-link "#/about" "About" :about]
                  [nav-link "#/ex" "Experiments" :experiments]
                  [nav-link "#/projects-portfolio" "Projects" :projects-portfolio]
-                 [nav-link "#/project" "Project" :project]]]
+                 [nav-link "#/project" "Project" :project]
+                 [nav-link "#/project-details" "Details" :project-details]]]
                [:div.navbar-end
                 [:div.navbar-item.mr-3]]]))
 
@@ -257,6 +259,16 @@
            [:div "logged in: " [:b (:identity @user-data)]]
            [:div "logged in: NO"])
        [psv/project-single-view "project-single-form"]])))
+
+(defn project-details []
+  (let [user-data (rf/subscribe [:user])]
+    (fn []
+      [:<>
+       #_(if @user-data
+           [:div "logged in: " [:b (:identity @user-data)]]
+           [:div "logged in: NO"])
+       [re-c/overview-proj-details-menu]
+       [:div "Details"]])))
 
 (defn projects-portfolio-page []
   (let [user-data (rf/subscribe [:user])]
@@ -339,6 +351,9 @@
      ["/project" {:name        :project
                   :view        #'project-single-page
                   :controllers [#_{:start (fn [_] (rf/dispatch [:view/init]))}]}]
+     ["/project-details" {:name        :project-details
+                          :view        #'project-details
+                          :controllers [#_{:start (fn [_] (rf/dispatch [:view/init]))}]}]
 
      ["/google-login" {:name        :google-login
                        :view        #'home-page-from-google
