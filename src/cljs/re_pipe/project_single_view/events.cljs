@@ -8,12 +8,13 @@
             [goog.events :as events]
             [goog.object :as gobj]
             [goog.functions]
-            [clojure.pprint :refer [pprint]]
+    ;[clojure.pprint :refer [pprint]]
+            [belib.core :as bc :refer [pprint]]
             [belib.browser :as bb]
             [belib.spec :as bs]
             [re-pipe.model :as model]
             [re-pipe.model-spec :as ms]
-            [belib.cal-week-year :as bc]
+    ;[belib.cal-week-year :as bc]
             [ajax.core :as ajax]
             [goog.history.EventType :as HistoryEventType]
             [time-literals.read-write]
@@ -33,7 +34,7 @@
 
                 [[:model/save]
                  ;; will be triggered if
-                 [{:keyCode keycodes/S :shiftKey true}]]
+                 [{:keyCode keycodes/S :ctrlKey true}]]
 
                 [[:common/navigate! :projects-portfolio nil nil]
                  ;; will be triggered if
@@ -188,10 +189,14 @@
 (rf/reg-event-fx
   :project/task-move
   (fn [cofx [_ component-id _model x]]
+    #_(println "move to: " x)
+    #_(pprint @_model)
     (let [db           (:db cofx)
           ;; TODO this :projects-overview-form s path is HARDCODED!
           pr-cross     (get-in db [:view :projects-overview-form :cross])
-          pr-keys      (vec (keys (get-in db [:model :g/projects])))
+          pr-keys      (vec (keys (bc/sorted-map-by-keys
+                                    (get-in db [:model :g/projects])
+                                    :g/sequence-num)))
           pr-id        (pr-keys (:y pr-cross))
 
           comp-key     (keyword component-id)

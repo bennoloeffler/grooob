@@ -17,7 +17,7 @@ View everything in Realtime.
 - model
     - ok: make the api generate different names and ids and make sure, names are not used for ids.
     - ok: make the api generate proper IDs inside the model (project, task, resource)
-    - make the api generate proper sequence-num and have a move-up and move-down for projects and resources
+    - ok: make the api generate proper sequence-num and have a move-up and move-down for projects and resources
     - ok: make the tasks appear in the sequence of the ressources
     - ok: remove pipeline in the model
     - ok: check, if idx in view model is needed - e.g. use id instead for key in view

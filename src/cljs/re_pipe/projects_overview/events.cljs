@@ -34,7 +34,7 @@
 
                 [[:model/save]
                  ;; will be triggered if
-                 [{:keyCode keycodes/S}]]
+                 [{:keyCode keycodes/S :ctrlKey true}]]
 
                 [[:common/navigate! :project nil nil]
                  ;; will be triggered if
@@ -45,13 +45,12 @@
                 [[:overview/project-move-up-down component-id _model -1]
                  ;; will be triggered if
                  [{:keyCode keycodes/UP :shiftKey true}]
-                 #_[{:keyCode keycodes/W :shiftKey true}]]
+                 [{:keyCode keycodes/W :shiftKey true}]]
 
                 [[:overview/project-move-up-down component-id _model 1]
                  ;; will be triggered if
                  [{:keyCode keycodes/DOWN :shiftKey true}]
-                 #_[{:keyCode keycodes/S :shiftKey true}]]
-
+                 [{:keyCode keycodes/S :shiftKey true}]]
 
                 [[:overview/project-move component-id _model 1]
                  ;; will be triggered if
