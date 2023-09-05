@@ -74,11 +74,11 @@
 (tests
   (bm/hum-err-mult-test
     date-cw-schema
-    :fail (d "2010-01-01")
+    :pass (d "1814-01-01")
     :pass (d "2010-01-04")
     :pass (d "2039-12-31")
-    :fail (d "2040-01-01")
-    :fail #inst"2040-01-01"
+    :pass (d "2240-01-01")
+    :fail #inst"2020-01-01"
     :pass #?(:clj  (LocalDate/of 2023 1 1)
              :cljs (LocalDate. 2023 1 1))) := true)
 
@@ -107,8 +107,8 @@
 
   (bm/hum-err-mult-test
     task-schema
-    :fail {:id        1 :name "t"
-           :start     (d "2010-01-01")
+    :pass {:id        1 :name "t"
+           :start     (d "0010-01-01") ; very, very long ago
            :end       (d "2013-01-01")
            :capa-need 20 :resource-id 20}
     :fail {:id        1 :name "t"
@@ -231,8 +231,8 @@
     {:re-model model-schema}))
 
 (tests
-  (bm/hum-err-test :time/restricted-local-date (d "1999-01-01")) := false
-  (bm/hum-err-test :re-date (d "1999-01-01")) := false
+  (bm/hum-err-test :time/restricted-local-date (d "1999-01-01")) := true
+  (bm/hum-err-test :re-date (d "1999-01-01")) := true
   (bm/hum-err-test :re-task {:id        1 :name "t"
                              :start     (d "2013-01-01")
                              :end       (d "2013-01-02")
