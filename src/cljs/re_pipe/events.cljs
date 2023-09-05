@@ -39,6 +39,12 @@
     (get-in db path)))
 
 #_(rf/reg-event-db
+    :set/data-path
+    (fn [db [_ path data]]
+      (assoc-in db path data)))
+
+#_(rf/dispatch [:set/data-path [:model :something] "New Value"])
+#_(rf/reg-event-db
     :set-docs
     (fn [db [_ docs]]
       (assoc db :docs "docs")))

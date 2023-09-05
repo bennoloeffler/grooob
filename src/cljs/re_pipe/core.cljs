@@ -1,7 +1,6 @@
 (ns re-pipe.core
   (:require
     [day8.re-frame.http-fx]
-    [re-pipe.re-comps.ui :as re-c]
     [reagent.dom :as rdom]
     [reagent.core :as r]
     [re-frame.core :as rf]
@@ -18,8 +17,10 @@
     [belib.hiccup :as bh]
     [re-pipe.events-timeout]
     #_[re-pipe.project-ui :as ui]
+    [re-pipe.re-comps.ui :as re-c]
     [re-pipe.project-single-view.ui :as psv]
     [re-pipe.projects-overview.ui :as pov]
+    [re-pipe.project-details.ui :as pdv]
     [re-pressed.core :as rp]
     [re-pipe.playback])
   (:import goog.History
@@ -267,8 +268,7 @@
        #_(if @user-data
            [:div "logged in: " [:b (:identity @user-data)]]
            [:div "logged in: NO"])
-       [re-c/overview-proj-details-menu]
-       [:div "Details"]])))
+       [pdv/project-details-view "project-details-form"]])))
 
 (defn projects-portfolio-page []
   (let [user-data (rf/subscribe [:user])]
@@ -399,7 +399,8 @@
   (fn [cofx _]
     {:db (-> (:db cofx)
              (assoc-in [:model]
-                       (model/generate-random-model 100)))}))
+                       (model/generate-random-model 20)
+                       #_(model/generate-simplest-model)))}))
 
 (defn init! []
   (start-router!)

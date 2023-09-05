@@ -145,7 +145,7 @@
 
 (rf/reg-sub
   :model/current-project
-  (fn [db [_ component-id]]
+  (fn [db [_ component-id view-or-data]]
     (let [comp-key            (keyword component-id)
           current-project-key (-> (:model db)
                                   :g/projects
@@ -156,7 +156,9 @@
           current-project     (-> (:model db)
                                   :g/projects
                                   (get current-project-key))]
-      (model/current-project current-project (:model db)))))
+      (if (= view-or-data :data)
+        current-project
+        (model/current-project current-project (:model db))))))
 
 
 (rf/reg-event-fx

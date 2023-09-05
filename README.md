@@ -15,6 +15,7 @@ View everything in Realtime.
 ## TODOs, next steps
 
 - sort imports
+- make pre and post conditions in model switchable?
 
 - model
     - ok: make the api generate different names and ids and make sure, names are not used for ids.

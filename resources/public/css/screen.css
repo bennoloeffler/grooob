@@ -277,7 +277,7 @@ th {
 
 html {
   background-color: white;
-  font-size: 20px;
+  font-size: 16px;
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
   min-width: 300px;
@@ -2282,7 +2282,7 @@ a.tag:hover {
     .is-danger.input:focus, .is-danger.textarea:focus, .is-danger.is-focused.input, .is-danger.is-focused.textarea, .is-danger.input:active, .is-danger.textarea:active, .is-danger.is-active.input, .is-danger.is-active.textarea {
       box-shadow: 0 0 0 0.125em rgba(241, 70, 104, 0.25); }
   .is-small.input, .is-small.textarea {
-    border-radius: 2px;
+    border-radius: 4px;
     font-size: 0.75rem; }
   .is-medium.input, .is-medium.textarea {
     font-size: 1.25rem; }
@@ -2456,7 +2456,7 @@ a.tag:hover {
     .select.is-danger select:focus, .select.is-danger select.is-focused, .select.is-danger select:active, .select.is-danger select.is-active {
       box-shadow: 0 0 0 0.125em rgba(241, 70, 104, 0.25); }
   .select.is-small {
-    border-radius: 2px;
+    border-radius: 4px;
     font-size: 0.75rem; }
   .select.is-medium {
     font-size: 1.25rem; }
@@ -7946,6 +7946,19 @@ a.has-text-danger-dark:hover, a.has-text-danger-dark:focus {
     background-color: #f14668; }
   .divider.is-danger.is-light::after, .divider.is-danger.is-light::before {
     background-color: #feecf0; }
+
+/* in order to make buttons have text left*/
+.justify-content-start {
+  justify-content: flex-start; }
+
+.justify-content-end {
+  justify-content: flex-end; }
+
+.disable {
+  opacity: 0.8;
+  pointer-events: none;
+  background-color: white;
+  color: black; }
 
 /* Top left text */
 .text-404 {

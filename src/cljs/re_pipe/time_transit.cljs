@@ -38,14 +38,25 @@
 ;(println (t/date "2011-01-01"))
 
 (comment
+  (let [h (t/date "2023-01-02")]
+    {:abstract (pr-str h)
+     :concrete (binding [*print-dup* true]
+                 (pr-str h))})
+
   (time-literals.read-write/print-time-literals-cljs!)
+  (println #time/duration "PT1S")
+
+  ; literal does not work in cljs??                                              (rf/dispatch [:set/data-path path val-t]))}])))
+  ; (def d #time/date"2039-01-01")
+  (def d (t/date "2039-01-01"))
+
   (time-literals.read-write/print-time-literals-clj!)
   (map #(cljs.reader/register-tag-parser! (first %) (second %)) time-literals.read-write/tags)
 
-  (time-literals.read-write/print-time-literals-cljs!)
   (cljs.reader/register-tag-parser! 'time/date (time-literals.read-write/tags 'time/date))
-  (def d #time/date "2039-01-01")
+  (def d #time/date"2039-01-01")
   (time-literals.read-write/tags 'time/period))
+
 
 (def time-deserialization-handlers
   (assoc-in time/time-deserialization-handlers

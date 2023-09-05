@@ -2,13 +2,16 @@
   (:require
     ;[debux.common.macro-specs :as ms]
     [belib.date-time :as bd]
+    #?(:clj  [belib.test :as bt :refer [expect-ex]]
+       :cljs [belib.test :as bt :refer-macros [expect-ex]])
     [tick.core :as t]
     ;[clj-time.core :as ct]
     [tick.alpha.interval :as tai]
     ;[clojure.pprint :refer [pprint]]
     [belib.core :as bc] ; also bc/pprint
     [belib.spec :as bs]
-    [belib.cal-week-year :as bcw]
+    ;[belib.browser :as bb]
+    ;[belib.cal-week-year :as bcw]
     [re-pipe.model-spec :as ms :refer [example-model get-rand-project-id projects-ids-range resources-ids-range next-sequence-num]]
     [clojure.spec.alpha :as s]
     [hyperfiddle.rcf :refer [tests]]
@@ -203,7 +206,7 @@
   {:post [(bs/validate :g/model %)]}
   {:g/name      name
    :g/projects  {}
-   :g/pipelines {}
+   ;:g/pipelines {}
    :g/resources {}
    :g/load      {}})
 
@@ -291,23 +294,6 @@
             (assoc-in [:g/resources resource-id-before :g/sequence-num] sequence-num-current)))
       model)))
 
-#_(defn move-up
-    [model id key]
-    {:post [(bs/validate :g/model %)]}
-    (let [id-order    (id-order model key)
-          id-map      (id-idx-map model key)
-          idx-current (id-map id)
-          idx-before  (dec idx-current)]
-      (assert idx-current (str "'" id "' should be a valid key in " key " - but isnt."))
-
-      (if-let [id-before (get id-order idx-before)]
-        (let [sequence-num-current (get-in model [key id :g/sequence-num])
-              sequence-num-before  (get-in model [key id-before :g/sequence-num])]
-          (-> model
-              (assoc-in [key id :g/sequence-num] sequence-num-before)
-              (assoc-in [key id-before :g/sequence-num] sequence-num-current)))
-        model)))
-
 (defn move-up-down
   [model id key y]
   {:post [(bs/validate :g/model %)]}
@@ -330,8 +316,8 @@
   (def resource-id-order (resource-id-sequence test-model))
   (def resource-id-map (resource-id-idx-map test-model))
   (move-up-resource test-model "purch-id")
-  (move-up test-model "purch-id" :g/resources)
-  (move-up test-model "p2" :g/projects))
+  (move-up-down test-model "purch-id" :g/resources 1)
+  (move-up-down test-model "p2" :g/projects -1))
 
 
 #_(defn add-pipeline
@@ -354,8 +340,8 @@
 
 (defn add-project
   [model project-id end]
-  #_{:pre  [((fn pipeline-exists [] (get-in model [:g/pipelines pipeline])))]
-     :post [(bs/validate :g/model %)]}
+  {:pre  [(bs/validate :g/model model)]
+   :post [(bs/validate :g/model %)]}
 
   (-> model
       (assoc-in [:g/projects project-id] {:g/entity-id    project-id
@@ -409,12 +395,12 @@
   this is week 693 amd 694 with 6 and 4 days.
   Every week get's its containing days capacity added.
   That is: {693 12, 694 8}"
-  [task abs-week-map]
+  [task]
   #_{:pre  [(bs/validate :g/task task)]
      :post [(bs/validate :g/load %)]}
   (let [all-days          (bd/list-of-all-days (:g/start task) (:g/end task))
         capa-per-day      (/ (:g/capacity-need task) (count all-days))
-        days-in-weeks     (map #(first (abs-week-map %)) all-days)
+        days-in-weeks     (map #(bd/epoch-week %) all-days)
         days-sum-in-weeks (frequencies days-in-weeks)
         weeks-capa-total  (bc/map-kv days-sum-in-weeks #(* % capa-per-day))
         weeks-capa-tasks  (bc/map-kv days-sum-in-weeks #(hash-map (:g/entity-id task) (* % capa-per-day)))]
@@ -423,21 +409,23 @@
 
 (tests
   (let [task (t (d "2023-04-11") (d "2023-04-21") ":engineering" 20)
-        load (split-task-to-weeks task bcw/abs-week-map)]
+        load (split-task-to-weeks task)]
     (s/valid? :g/load load)) := true)
 
 (comment
   (def task (t (d "2023-04-11") (d "2023-04-21") ":engineering" 20))
-  (def split (split-task-to-weeks task bcw/abs-week-map))
+  (def split (split-task-to-weeks task))
   (s/valid? :g/load split)
   (bc/deep-merge-with + {":engineering" {:total {693 18, 751 3, 694 22}
                                          :tasks {693 {:taskid 9}}}
                          ":purchasing"  {:total {693 9, 751 3}
-                                         :tasks {693 {:taskid 9}}}} (update-in split [":engineering"] dissoc :tasks) #_{:eng {693 12, 694 8}})
+                                         :tasks {693 {:taskid 9}}}}
+                      (update-in split [":engineering"] dissoc :tasks) #_{:eng {693 12, 694 8}})
   (bc/deep-merge-with merge {":engineering" {:total {693 18, 751 3, 694 22}
                                              :tasks {693 {:taskid 9}}}
                              ":purchasing"  {:total {693 9, 751 3}
-                                             :tasks {693 {:taskid 9}}}} (update-in split [":engineering"] dissoc :total) #_{:eng {693 12, 694 8}}))
+                                             :tasks {693 {:taskid 9}}}}
+                      (update-in split [":engineering"] dissoc :total) #_{:eng {693 12, 694 8}}))
 
 
 
@@ -445,20 +433,17 @@
 ;;----------------------------------------------
 ;; a view to the projects and the model: start and end in date
 ;;----------------------------------------------
-; 0. there is a update-project-start-end functions, that is called on every project upon init.
+; 0. there is a update-project-start-end function, that is called on every project upon init.
 ; 1. then, all projects have :start-end-project [#time/date"2024-04-01" #time/date"2024-04-30"]
 ; 2. there is a update-model-start-end function, that is called from update-project-start-end.
 ; 3. update-model-start-end ony EXTENDS the range of start and end. never shrinks!
 ; RESULT after init: every project knows its start and end date
 ;                    the model knows its start and end date
 ; ADDING or REMOVING a task may trigger a change:
-
-
-; 3. afterwards, the model knows is's start and end in cal weeks.
 ; 4. when a task is added (not removed), the
 ;    - minimum of all start is set to project-start-date
 ;    - maximum of all end is set to project-end-date
-;    that way, start and end are keept up to date after every task change.
+;    that way, start and end are kept up to date after every task change.
 ; 5. whenever a task is added, its start and end are checked to extend the current start and end of the model.
 ; 6. visible area never shrinks during runtime - only at init.
 ;    That way, the model may indicate more space than needed - but never too less.
@@ -477,19 +462,19 @@
         (do
           ;(println "moved start: " date)
           (-> m (assoc :g/start-end-model [date end])
-              (bcw/weekify-element :g/start-end-model)))
+              (bd/weekify-element :g/start-end-model)))
         (if (t/> date end)
           (do
             ;(println "moved end: " date)
             (-> m (assoc :g/start-end-model [start date])
-                (bcw/weekify-element :g/start-end-model)))
+                (bd/weekify-element :g/start-end-model)))
           m)))))
 
 (defn update-project-start-end
   "Finds the start and end date of projects tasks.
   Writes it in a cache, e.g.:
   :g/start-end-project [#time/date\"2022-04-01\" #time/date\"2022-04-30\"] "
-  [m project-name]
+  [m project-name] ; TODO change to entitiy-id
   (let [min-max    (fn [min-max-fn g-start-or-end]
                      (apply min-max-fn
                             (map g-start-or-end
@@ -503,7 +488,7 @@
     (-> m
         (assoc-in [:g/projects project-name :g/start-end-project]
                   [start-of-p end-of-p])
-        (update-in [:g/projects project-name] bcw/weekify-element :g/start-end-project)
+        (update-in [:g/projects project-name] bd/weekify-element :g/start-end-project)
         (update-model-start-end start-of-p)
         (update-model-start-end end-of-p))))
 
@@ -551,8 +536,8 @@
        vals
        (map :g/start-end-project)
        (filter #(= 2 (count %))) ; is a vector
-       (filter #(and (bd/date? (first %)) ; has two dates
-                     (bd/date? (second %))))
+       (filter #(and (t/date? (first %)) ; has two dates
+                     (t/date? (second %))))
        (filter #(t/<= (first %) (second %))) ; first smaller or equal than second
        count) := 2) ; two projects are evaluated
 
@@ -567,10 +552,10 @@
   "Adds a task to model. This means, that the task is
   added to the project and also to the load."
   [model project-id task]
-  #_{:pre  [(bs/validate :g/model model)]
-     :post [(bs/validate :g/model model)]}
+  {:pre  [(bs/validate :g/model model)]
+   :post [(bs/validate :g/model %)]}
   (let [resource-id        (:g/resource-id task)
-        capa-in-weeks      (split-task-to-weeks task bcw/abs-week-map)
+        capa-in-weeks      (split-task-to-weeks task)
         capa-without-tasks (update-in capa-in-weeks [resource-id] dissoc :g/tasks-details)
         capa-without-total (update-in capa-in-weeks [resource-id] dissoc :g/total-load)
 
@@ -578,8 +563,9 @@
         load               (bc/deep-merge-with merge load-total capa-without-total)
         model-with-load    (assoc model :g/load load)
         model-with-task    (assoc-in model-with-load [:g/projects project-id :g/tasks (:g/entity-id task)] task)
-        model-with-task    (update-in model-with-task [:g/projects project-id :g/tasks (:g/entity-id task)] bcw/weekify-element :g/start)
-        model-with-task    (update-in model-with-task [:g/projects project-id :g/tasks (:g/entity-id task)] bcw/weekify-element :g/end)]
+        ; TODO what if equal?
+        model-with-task    (update-in model-with-task [:g/projects project-id :g/tasks (:g/entity-id task)] bd/weekify-element :g/start)
+        model-with-task    (update-in model-with-task [:g/projects project-id :g/tasks (:g/entity-id task)] bd/weekify-element :g/end)]
     (-> model-with-task
         (update-project-start-end project-id))))
 
@@ -590,7 +576,10 @@
         ;_ (bc/validate :g/model ex-added)
         load-eng (get-in ex-added [:g/load "engineering-id"])]
     ;; the capa is added in load
-    (get-in load-eng [:g/total-load 693]) := 30.0
+    (get-in load-eng [:g/total-load 693]) := 24 ; 30.0 epoch week is much bigger...
+    (get-in load-eng [:g/total-load 2780]) := 7 ;
+    (get-in load-eng [:g/total-load 2781]) := 3 ;
+
     ;; the task is aded in project
     (:g/entity-id (get-in ex-added [:g/projects "p1" :g/tasks task-id])) := task-id
     (:g/start-end-model ex-added) := [(d "2023-04-11") (d "2024-04-30")]))
@@ -677,7 +666,6 @@
         all-ids (keys (get-in model [:g/load resource-id :g/tasks-details]))
         del-ids (filter #(= {} (get-in details [:g/load resource-id :g/tasks-details %])) all-ids)
         details (update-in details [:g/load resource-id :g/tasks-details] #(apply dissoc % del-ids))]
-
     details))
 
 (defn remove-task-return-it
@@ -685,12 +673,12 @@
    removed from the project and also from the load.
    Returns a vector of the removed task and the model without the task."
   [model project-id task-id]
-  #_{:pre  [(bs/validate :g/model model)]
-     :post [(bs/validate :g/model model)]}
+  {:pre  [(bs/validate :g/model model)]
+   :post [(bs/validate :g/model (second %))]}
   (let [task               (get-in model [:g/projects project-id :g/tasks task-id])
         model              (bc/dissoc-in model [:g/projects project-id :g/tasks] task-id)
         resource-id        (:g/resource-id task)
-        capa-in-weeks      (split-task-to-weeks task bcw/abs-week-map)
+        capa-in-weeks      (split-task-to-weeks task)
         capa-without-tasks (update-in capa-in-weeks [resource-id] dissoc :g/tasks-details)
         total-load         (bc/deep-merge-with - (:g/load model) capa-without-tasks)
         model-with-total   (assoc-in model [:g/load] total-load)
@@ -699,6 +687,8 @@
 
 (defn remove-task
   [model project-id task-id]
+  {:pre  [(bs/validate :g/model model)]
+   :post [(bs/validate :g/model %)]}
   (second (remove-task-return-it model project-id task-id)))
 
 (comment
@@ -719,7 +709,6 @@
 #_(require '[debux.core :refer [dbg dbgn]]
            '[erdos.assert :as ea])
 
-; TODO is not sequence stable!
 (defn move-task [m project-id task-id days]
   (if (= days 0)
     m ; do nothing
@@ -734,23 +723,54 @@
           (add-task project-id t)
           (update-project-start-end project-id)))))
 
-; DOES NOT WORK
-#_(defn move-task-stable [m project-id task-id days]
-    (if (= days 0)
-      m ; do nothing
-      (let [tasks   (keys (get-in m [:g/projects project-id :g/tasks]))
-            m-moved (reduce
-                      (fn [acc val]
-                        (move-task
-                          acc
-                          project-id
-                          val (if (= val task-id)
-                                days
-                                0)))
-                      m tasks)]
+(defn update-task
+  "have an existing :g/entity-id and
+  some fields, that need update."
 
-        ;(pprint (view-model m-moved))
-        m-moved)))
+  [m project-id task-data]
+  ; if :g/entity-id does not exist:
+  ;   error
+  ;   if :g/resource-id or :g/capacity-needed or :g/start or :g/end has changed
+  ;     -> remove, merge, add
+  ;     merge only
+  {:pre  [(bs/validate :g/model m)]
+   :post [(bs/validate :g/model %)]}
+  ;(println "in update-task:" (:g/name m))
+  (if-let [task-id (:g/entity-id task-data)]
+    (if-let [task (get-in m [:g/projects project-id :g/tasks task-id])]
+      (let [updated-task (merge task task-data)]
+        (-> m
+            (remove-task project-id task-id)
+            (add-task project-id updated-task)))
+      (throw (ex-info (str "task with :g/entity-id does not exist: " task-id)
+                      {:project-id          project-id
+                       :task-data           task-data
+                       :g/entity-id-of-task task-id})))
+    (throw (ex-info "the data does not contain a :g/entity-id"
+                    {:task-data task-data}))))
+
+#_(tests
+    (expect-ex (update-task test-model "p1" {;:g/entity-id     "tid-1",
+                                             :g/start         (d "2024-04-01")
+                                             :g/end           (d "2024-04-20")
+                                             :g/resource-id   "engineering-id",
+                                             :g/capacity-need 15}))
+    := #?(:clj clojure.lang.ExceptionInfo :cljs cljs.core.ExceptionInfo)
+
+    (expect-ex (update-task test-model "p1" {:g/entity-id     "tid-XXX",
+                                             :g/start         (d "2024-04-01")
+                                             :g/end           (d "2024-04-20")
+                                             :g/resource-id   "engineering-id",
+                                             :g/capacity-need 15}))
+    := #?(:clj clojure.lang.ExceptionInfo :cljs cljs.core.ExceptionInfo)
+
+
+    (update-task test-model "p1" {:g/entity-id     "tid-1",
+                                  :g/start         (d "2026-04-01")
+                                  :g/end           (d "2026-04-20")
+                                  :g/resource-id   111111,
+                                  :g/capacity-need 15}))
+;:= #?(:clj clojure.lang.ExceptionInfo :cljs cljs.core.ExceptionInfo))
 
 (declare view-model)
 (defn move-project [m project-id days]
@@ -783,12 +803,19 @@
   (let [result (+ 1 2 3)])
   (reduce (fn [acc val] (println "v" val "a" acc) (+ val acc)) -10 [1 2 3 4 5]))
 
+
+
+
+
+
+
+
 ;;----------------------------------------------
 ;; Performance test
 ;;----------------------------------------------
 
 (defn add-project-red-fn [m num]
-  (add-project m num bcw/last-date #_"p"))
+  (add-project m num (d "2040-03-03") #_"p"))
 
 (defn add-resource-red-fn [m num]
   (add-resource m num 100 200))
@@ -811,17 +838,36 @@
                        rand-nth)]
     [project-id task-id]))
 
+(defn generate-simplest-model []
+  (-> (new-model "simple-model")
+      (add-resource "r1" 1 2)
+      (add-resource "r2" 1 2)
+      (add-project "the-proj" nil #_"pip-25")
+      (add-task "the-proj" (t (d "2023-01-02")
+                              (d "2023-01-09")
+                              "r1"
+                              1))
+      (add-task "the-proj" (t (d "2023-01-02")
+                              (d "2023-01-09")
+                              "r1"
+                              2))))
+
+(comment
+  (view-model (generate-simplest-model)))
+
 (defn generate-random-model [num-of-tasks]
-  (let [_     (println "creating " num-of-tasks " tasks... takes a while...")
-        tasks (time (->> (gen/sample (s/gen :g/task) num-of-tasks)
-                         (map #(shorten-task %))))
+  (let [;_     (println "creating " num-of-tasks " tasks... takes a while...")
+        ; (time (... to measure time
+        tasks (->> (gen/sample (s/gen :g/task) num-of-tasks)
+                   (map #(shorten-task %)))
         ;_               (pprint tasks)
-        _     (println "wiring model...")
-        m     (time (as-> (new-model "m") $
-                          #_(add-pipeline $ "p" 100)
-                          (reduce add-project-red-fn $ projects-ids-range)
-                          (reduce add-resource-red-fn $ resources-ids-range)
-                          (reduce add-task-red-fn $ tasks)))]
+        ;_     (println "wiring model...")
+        ; (time (... to measure time
+        m     (as-> (new-model "m") $
+                    #_(add-pipeline $ "p" 100)
+                    (reduce add-project-red-fn $ projects-ids-range)
+                    (reduce add-resource-red-fn $ resources-ids-range)
+                    (reduce add-task-red-fn $ tasks))]
     m))
 
 
@@ -882,7 +928,7 @@
                                              second
                                              first)]
                                {:start-x start
-                                :len-x   (- end start)
+                                :len-x   (max 1 (- end start)) ; not 0!
                                 :name    (:g/name raw-project)
                                 :id      (:g/entity-id raw-project)}))
                            ; TODO sort here? by :g/sequence-num?
@@ -1000,10 +1046,9 @@
         (add-task "new-proj-2" (t (d "2023-05-07")
                                   (d "2023-06-01")
                                   "engineering"
-                                  200)))) := {:min-cw   696
-                                              :max-cw   700
-                                              :projects [{:start-x 696 :len-x 4 :name "pro-new-proj-1" :id "new-proj-1"}
-                                                         {:start-x 696 :len-x 4 :name "pro-new-proj-2" :id "new-proj-2"}]}
+                                  200)))) := {:min-cw   2783, :max-cw 2787
+                                              :projects [{:start-x 2783 :len-x 4 :name "pro-new-proj-1" :id "new-proj-1"}
+                                                         {:start-x 2783 :len-x 4 :name "pro-new-proj-2" :id "new-proj-2"}]}
 
   nil)
 ;:g/projects

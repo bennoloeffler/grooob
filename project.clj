@@ -59,7 +59,11 @@
                  [net.cgrand/macrovich "0.2.1"]
                  [luminus-transit "0.1.6"]
 
-                 [com.github.gnl/playback "0.3.10"]]
+                 [com.github.gnl/playback "0.3.10"]
+                 [lambdaisland/deep-diff2 "2.10.211"]
+
+                 [mvxcvi/puget "1.3.2"]] ;colour print data
+
 
 
   :min-lein-version "2.0.0"
@@ -105,10 +109,10 @@
                                     [re-frisk "1.5.2"]
                                     [ring/ring-devel "1.9.5"]
                                     [ring/ring-mock "0.4.0"]]
-                                    ; included in ~/.lein/projects.clj
-                                    ;[philoskim/debux "0.8.3"]
-                                    ;[djblue/portal "0.37.1"]
-                                    ;[com.github.gnl/playback "0.3.10"]]
+                   ; included in ~/.lein/projects.clj
+                   ;[philoskim/debux "0.8.3"]
+                   ;[djblue/portal "0.37.1"]
+                   ;[com.github.gnl/playback "0.3.10"]]
 
                    :plugins        [[com.jakemccrary/lein-test-refresh "0.24.1"]
                                     [jonase/eastwood "0.3.5"]

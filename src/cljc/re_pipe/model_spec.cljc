@@ -231,7 +231,7 @@
 ;;----------------
 ;; projects - spec
 ;;-----------------
-(def projects-ids-range (vec (map str (range 100 120))))
+(def projects-ids-range (vec (map str (range 100 102))))
 (def projects-ids-set (set projects-ids-range))
 (defn get-rand-project-id [] (rand-nth projects-ids-range))
 
@@ -321,8 +321,8 @@
                flatten
                (map keys)
                flatten
+               (filter some?)
                set))
-
 (defn all-project-ids
   [model] (->> model
                :g/projects
@@ -369,8 +369,13 @@
 
 (defn all-task-ids-in-load-match? [model]
   (let [tasks-ids-pr (all-task-ids-in-all-projects model)
-        tasks-ids-lo (all-task-ids-in-load model)]
-    (= tasks-ids-pr tasks-ids-lo)))
+        tasks-ids-lo (all-task-ids-in-load model)
+        is-ok        (= tasks-ids-pr tasks-ids-lo)]
+    (if is-ok
+      true
+      (do (println "all task ids in all projects:\n" tasks-ids-pr)
+          (println "all task ids in load:\n" tasks-ids-lo)))))
+
 
 (defn all-res-ids-in-pr-match? [model]
   (let [res-ids-pr  (all-res-ids-in-all-tasks model)
@@ -390,6 +395,7 @@
                                 :g/load])))
 
 (comment
+  (s/valid? :g/model example-model)
   (bs/validate :g/model example-model))
 (tests
   (some? (bs/validate :g/model example-model)) := true)

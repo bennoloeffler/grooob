@@ -4,7 +4,7 @@
 @import url('https://fonts.googleapis.com/css?family=Nunito:400,700');
 @import url('https://fonts.googleapis.com/css2?family=Dosis:wght@200&family=Genos:wght@200&family=Titillium+Web:wght@200&display=swap');
 
-$body-size: 20px !default;
+//$body-size: 20px !default;
 
 
 // Set your brand colors
@@ -46,9 +46,29 @@ $link: $dark-blue;
 // @import "../../node_modules/bulma/sass/layout/hero.sass";
 // @import "../../node_modules/bulma/sass/layout/section.sass";
 
+//$control-padding-horizontal: 5px;
+//$control-padding-vertical: 0px;
+//$control-border-width: 2px;
+$control-radius-small: 4px;
+
+
 @import "../../node_modules/bulma/bulma.sass";
 @import "../../node_modules/@creativebulma/bulma-divider/src/sass/index.sass";
 
+/* in order to make buttons have text left*/
+.justify-content-start {
+  justify-content: flex-start;
+}
+.justify-content-end {
+  justify-content: flex-end;
+}
+
+.disable {
+  opacity: 0.8;
+  pointer-events: none;
+  background-color: white;
+  color: black;
+}
 
 /* Top left text */
 .text-404 {

@@ -10,10 +10,10 @@
             [goog.functions]
             [clojure.pprint :refer [pprint]]
             [belib.browser :as bb]
-            [belib.spec :as bs]
+            [belib.date-time :as bd]
             [re-pipe.utils :as utils]
             [re-pipe.model-spec :as ms]
-            [belib.cal-week-year :as bc]
+    ;[belib.cal-week-year :as bc]
             [ajax.core :as ajax]
             [goog.history.EventType :as HistoryEventType]
             [time-literals.read-write]
@@ -58,7 +58,7 @@
             ;_           (println (:projects @model))
             p-indicator (:name ((vec (:projects @_model)) y))
             ;_           (println p-indicator)
-            cursor-week (bc/week-year-from-abs-week (+ x 1 (:min-cw @_model)))]
+            cursor-week (bd/week-year-from-abs-week (+ x 1 (:min-cw @_model)))]
 
         [:<>
          [:rect {:x            (* g x)
@@ -80,7 +80,7 @@
            :writing-mode      "tb"
            :fill-opacity      0.5}
 
-          (first (bc/weeks-indicators [cursor-week]))]
+          (first (bd/weeks-indicators [cursor-week]))]
          [:text.svg-non-select
           {:x                 (* g (+ 2 x))
            :y                 (* g (+ y (/ 1 2)))
@@ -208,7 +208,7 @@
         g @_grid
         x (- (:max-cw m) (:min-cw m))
         p (:projects m)
-        i (bc/weeks-indicators (bc/weeks-from-abs-weeks (:min-cw m) x))
+        i (bd/weeks-indicators (bd/weeks-from-abs-weeks (:min-cw m) x))
         y (* g (count p))]
     (vec (cons :<> (vec (map-indexed (fn [idx e] [one-x-axis-element e idx g y]) i))))
     #_(vec (cons :<> (conj (vec (map (fn [cw] [square (+ gx (* cw @grid)) gy])
@@ -344,7 +344,7 @@
          :reagent-render         render-grid-form
          :component-did-mount
          (fn []
-           (println "View mounted for " component-id)
+           ;(println "View mounted for " component-id)
            (rf/dispatch [::rp/set-keydown-rules
                          key-down-rules])
 
@@ -372,7 +372,7 @@
                                         {:x (.-offsetX event)
                                          :y (.-offsetY event)}))))))
          :component-will-unmount (fn []
-                                   (println "View will unmount: " component-id)
+                                   ;(println "View will unmount: " component-id)
                                    (rf/dispatch [::rp/set-keydown-rules
                                                  {}])
                                    (events/unlistenByKey @scroll-listener)
