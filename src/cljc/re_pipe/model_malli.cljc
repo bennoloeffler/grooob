@@ -18,7 +18,7 @@
     [malli.experimental.time :as met]
     [malli.registry :as mr]
     [tick.core :as t]
-    [belib.cal-week-year :as bcw]
+    ;[belib.cal-week-year :as bcw]
     [belib.malli :as bm]
     [hyperfiddle.rcf :refer [tests]]
     #?(:clj  [belib.test :as bt :refer [expect-ex return-ex]]
@@ -51,11 +51,11 @@
 
 (def date-cw-schema
   [:time/local-date
-   {:min      bcw/first-date ; 2010-01-04 including
-    :max      bcw/last-date ; 2039-12-31 including
+   {;:min      bcw/first-date ; 2010-01-04 including
+    ;:max      bcw/last-date ; 2039-12-31 including
     :gen/fmap (fn [_]
-                (let [start     (.toEpochDay bcw/first-date)
-                      end       (.toEpochDay bcw/last-date)
+                (let [start     (.toEpochDay (t/date "2010-01-04" #_bcw/first-date))
+                      end       (.toEpochDay (t/date "2039-12-31" #_bcw/last-date))
                       epoch-day (->
                                   (- end start)
                                   rand-int

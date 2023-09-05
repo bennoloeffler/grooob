@@ -11,7 +11,6 @@
     [belib.core :as bc] ; also bc/pprint
     [belib.spec :as bs]
     ;[belib.browser :as bb]
-    ;[belib.cal-week-year :as bcw]
     [re-pipe.model-spec :as ms :refer [example-model get-rand-project-id projects-ids-range resources-ids-range next-sequence-num]]
     [clojure.spec.alpha :as s]
     [hyperfiddle.rcf :refer [tests]]
@@ -576,7 +575,7 @@
         ;_ (bc/validate :g/model ex-added)
         load-eng (get-in ex-added [:g/load "engineering-id"])]
     ;; the capa is added in load
-    (get-in load-eng [:g/total-load 693]) := 24 ; 30.0 epoch week is much bigger...
+    (get-in load-eng [:g/total-load 693]) := 24.0 ; 30.0 epoch week is much bigger...
     (get-in load-eng [:g/total-load 2780]) := 7 ;
     (get-in load-eng [:g/total-load 2781]) := 3 ;
 

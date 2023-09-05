@@ -7,8 +7,7 @@
     [re-pipe.config :refer [env]]
     [clojure.tools.cli :refer [parse-opts]]
     [clojure.tools.logging :as log]
-    [mount.core :as mount]
-    [belib.cal-week-year :as bc])
+    [mount.core :as mount])
   (:gen-class))
 
 

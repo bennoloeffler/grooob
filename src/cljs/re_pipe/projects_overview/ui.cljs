@@ -14,7 +14,6 @@
             [re-pipe.grid-view.ui :as grid-view]
             [re-pipe.model-spec :as ms]
             [re-pipe.utils :as utils]
-            [belib.cal-week-year :as bc]
             [ajax.core :as ajax]
             [goog.history.EventType :as HistoryEventType]
             [time-literals.read-write]

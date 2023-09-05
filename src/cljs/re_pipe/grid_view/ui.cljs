@@ -208,7 +208,7 @@
         g @_grid
         x (- (:max-cw m) (:min-cw m))
         p (:projects m)
-        i (bd/weeks-indicators (bd/weeks-from-abs-weeks (:min-cw m) x))
+        i (bd/weeks-indicators (bd/cal-weeks-from-epoch-weeks (:min-cw m) x))
         y (* g (count p))]
     (vec (cons :<> (vec (map-indexed (fn [idx e] [one-x-axis-element e idx g y]) i))))
     #_(vec (cons :<> (conj (vec (map (fn [cw] [square (+ gx (* cw @grid)) gy])
