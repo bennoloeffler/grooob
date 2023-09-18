@@ -62,7 +62,8 @@
                  [com.github.gnl/playback "0.3.10"]
                  [lambdaisland/deep-diff2 "2.10.211"]
 
-                 [mvxcvi/puget "1.3.2"]] ;colour print data
+                 [mvxcvi/puget "1.3.2"] ;colour print data
+                 [instaparse "1.4.12"]]
 
 
 

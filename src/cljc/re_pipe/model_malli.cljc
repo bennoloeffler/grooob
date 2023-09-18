@@ -1,5 +1,10 @@
 (ns re-pipe.model-malli
   (:require ;[puget.printer :refer [cprint]] not cljs
+    #?(:cljs [debux.cs.core :as d :refer-macros [clog clogn dbg dbgn break
+                                                 clog_ clogn_ dbg_ dbgn_ break_]]
+       :clj  [debux.cs.core :as d :refer [clog clogn dbg dbgn break
+                                          clog_ clogn_ dbg_ dbgn_ break_]])
+    [belib.date-time :as bd]
     [clojure.pprint :refer [pprint]]
     #?@(:cljs [[java.time :refer [LocalDateTime LocalDate]]])
     [malli.core :as m]
@@ -18,7 +23,6 @@
     [malli.experimental.time :as met]
     [malli.registry :as mr]
     [tick.core :as t]
-    ;[belib.cal-week-year :as bcw]
     [belib.malli :as bm]
     [hyperfiddle.rcf :refer [tests]]
     #?(:clj  [belib.test :as bt :refer [expect-ex return-ex]]
@@ -40,6 +44,9 @@
 (comment
   (use 'debux.core))
 
+(hyperfiddle.rcf/enable! true)
+
+
 (def d t/date)
 
 ; put time schemas in default registry
@@ -49,7 +56,7 @@
     (met/schemas)))
 
 
-(def date-cw-schema
+(def date-schema
   [:time/local-date
    {;:min      bcw/first-date ; 2010-01-04 including
     ;:max      bcw/last-date ; 2039-12-31 including
@@ -73,7 +80,7 @@
           (str value " has wrong type: " (type value) ". Should satisfy tick/date? (cljs: joda local date, clj: LocalDate)"))))}])
 (tests
   (bm/hum-err-mult-test
-    date-cw-schema
+    date-schema
     :pass (d "1814-01-01")
     :pass (d "2010-01-04")
     :pass (d "2039-12-31")
@@ -95,11 +102,36 @@
    [:map
     [:id :int]
     [:name :string]
-    [:start date-cw-schema]
-    [:end date-cw-schema]
+    [:start date-schema]
+    [:start-cw {:optional true} :any]
+    [:end date-schema]
+    [:end-cw {:optional true} :any]
     [:capa-need :int]
-    [:resource-id :int]]
+    [:resource-id :int]
+    [:description :string]]
    end-after-start])
+
+(def long-task
+  {:id          1 :name "t"
+   :start       (d "0010-01-01") ; very, very long ago
+   :end         (d "2013-01-01")
+   :capa-need   20
+   :resource-id 20
+   :description "d"})
+(def date-wrong-task
+  {:id          1 :name "t"
+   :start       (d "2014-01-01")
+   :end         (d "2013-01-01")
+   :capa-need   20
+   :resource-id 20
+   :description "d"})
+(def short-task
+  {:id          1 :name "t"
+   :start       (d "2013-01-01")
+   :end         (d "2013-01-02")
+   :capa-need   20
+   :resource-id 20
+   :description "d"})
 
 (tests
 
@@ -107,24 +139,16 @@
 
   (bm/hum-err-mult-test
     task-schema
-    :pass {:id        1 :name "t"
-           :start     (d "0010-01-01") ; very, very long ago
-           :end       (d "2013-01-01")
-           :capa-need 20 :resource-id 20}
-    :fail {:id        1 :name "t"
-           :start     (d "2014-01-01")
-           :end       (d "2013-01-01")
-           :capa-need 20 :resource-id 20}
-    :pass {:id        1 :name "t"
-           :start     (d "2013-01-01")
-           :end       (d "2013-01-02")
-           :capa-need 20 :resource-id 20}) := true)
+    :pass long-task
+    :fail date-wrong-task
+    :pass short-task)
+  := true)
 
 (def project-schema
   [:map
    [:id :int]
    [:name :string]
-   [:promised date-cw-schema]
+   [:promised date-schema]
    ;[:seq-nr :int]
    [:tasks [:vector task-schema]]])
 
@@ -136,28 +160,21 @@
     project-schema
     :pass {:id       2
            :name     "p2"
-           ;:seq-nr   2
            :promised (d "2024-11-30")
            :tasks    []}
     :pass {:id       3
            :name     "p3"
-           ;:seq-nr   4
            :promised (d "2024-11-30")
-           :tasks    [{:id          4
-                       :name        "a task on res 3"
-                       :start       (d "2024-11-29")
-                       :end         (d "2024-11-30")
-                       :resource-id 3
-                       :capa-need   300}]}) := true)
+           :tasks    [short-task]}) := true)
 
 (def resource-schema
   [:map
    [:id :int]
    [:name :string]
    ;[:seq-nr :int]
-   [:capa [:map-of #_week :int [:map
-                                [:yellow :int]
-                                [:red :int]]]]])
+   [:capa [:map-of #_week date-schema [:map
+                                       [:yellow :int]
+                                       [:red :int]]]]])
 
 (tests
 
@@ -168,11 +185,11 @@
     :pass {:id   4
            :name "r3"
            ;:seq-nr 1
-           :capa {23 {:yellow 20 :red 30}}}
+           :capa {(d "2024-11-30") {:yellow 20 :red 30}}}
     :fail {:id   4
            :name "r3"
            ;:seq-nr 1
-           :capa {23 {:yelow 20 :red 30}}}) := true)
+           :capa {(d "2024-11-30") {:yelow 20 :red 30}}}) := true)
 
 (def model-schema
   [:map
@@ -193,25 +210,20 @@
                         :name     "p3"
                         ;:seq-nr   4
                         :promised (d "2024-11-30")
-                        :tasks    [{:id          4
-                                    :name        "a task on res 3"
-                                    :start       (d "2024-11-29")
-                                    :end         (d "2024-11-30")
-                                    :resource-id 3
-                                    :capa-need   300}]}]
+                        :tasks    [short-task]}]
            :resources [{:id   3
                         :name "r3"
                         ;:seq-nr 1
-                        :capa {23 {:yellow 20 :red 30}}}]}
+                        :capa {(d "2024-11-30") {:yellow 20 :red 30}}}]}
     :fail {:projects  {} ;; WRONG
            :resources [{:id   3
                         :name "r3"
                         ;:seq-nr 1
-                        :capa {23 {:yellow 20 :red 30}}}
+                        :capa {(d "2024-11-30") {:yellow 20 :red 30}}}
                        {:id     4
                         :name   "r3"
                         :seq-nr 1 ;; WRONG
-                        :capa   {23 {:yelow #_WRONG 20 :red 30}}}]}) := true)
+                        :capa   {13 {:yelow #_WRONG 20 :red 30}}}]}) := true)
 
 
 
@@ -223,48 +235,62 @@
   (mr/composite-registry
     (m/default-schemas)
     (met/schemas)
-    {:time/restricted-local-date date-cw-schema} ; with namespaced keyword
-    {:re-date date-cw-schema} ; without
+    ;{:time/restricted-local-date date-schema} ; with namespaced keyword
+    {:re-date date-schema} ; without
     {:re-task task-schema}
     {:re-project project-schema}
     {:re-resource resource-schema}
     {:re-model model-schema}))
 
 (tests
-  (bm/hum-err-test :time/restricted-local-date (d "1999-01-01")) := true
+  ;(bm/hum-err-test :time/restricted-local-date (d "1999-01-01")) := true
   (bm/hum-err-test :re-date (d "1999-01-01")) := true
-  (bm/hum-err-test :re-task {:id        1 :name "t"
-                             :start     (d "2013-01-01")
-                             :end       (d "2013-01-02")
-                             :capa-need 20 :resource-id 20}) := true
+  (bm/hum-err-test :re-task short-task) := true
+
   (bm/hum-err-test-pr :re-project {:id       3
                                    :name     "p3"
                                    ;:seq-nr   4
                                    :promised (d "2024-11-30")
-                                   :tasks    [{:id          4
-                                               :name        "a task on res 3"
-                                               :start       (d "2024-11-29")
-                                               :end         (d "2024-11-30")
-                                               :resource-id 3
-                                               :capa-need   300}]}) := true
+                                   :tasks    [short-task short-task]}) := true
   (bm/hum-err-test :re-resource {:id   4
                                  :name "r3"
                                  ;:seq-nr 1
-                                 :capa {23 {:yellow 20 :red 30}}}) := true
+                                 :capa {(d "2024-11-30") {:yellow 20 :red 30}}}) := true
+
   (bm/hum-err-test :re-model {:projects  [{:id       5
                                            :name     "p3"
                                            ;:seq-nr   4
                                            :promised (d "2024-11-30")
-                                           :tasks    [{:id          4
-                                                       :name        "a task on res 3"
-                                                       :start       (d "2024-11-29")
-                                                       :end         (d "2024-11-30")
-                                                       :resource-id 3
-                                                       :capa-need   300}]}]
+                                           :tasks    [short-task short-task]}]
                               :resources [{:id   3
                                            :name "r3"
                                            ;:seq-nr 1
-                                           :capa {23 {:yellow 20 :red 30}}}]}) := true)
+                                           :capa {(d "2024-11-30") {:yellow 20 :red 30}}}]}) := true)
+
+
+(def test-model {:projects  [{:id       5
+                              :name     "p3"
+                              :promised (d "2024-11-30")
+                              :tasks    [short-task]}]
+                 :resources [{:id   3
+                              :name "r3"
+                              :capa {(d "2024-11-30") {:yellow 20 :red 30}}}]})
+
+;; API for the model
 
 
 
+(tests
+  (bm/hum-err model-schema
+              (bd/assoc-in-date test-model
+                                [:projects 0 :tasks 0]
+                                :start
+                                (d "2010-01-06")))
+  := nil)
+
+(defn new-res [m name capa])
+(defn new-proj [m name end-date])
+(defn new-task [m proj-id
+                start end capa-need res-id comment])
+(defn add-load-for-task [task-id])
+(defn del-load-for-task [task-id])

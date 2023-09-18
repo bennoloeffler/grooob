@@ -461,12 +461,12 @@
         (do
           ;(println "moved start: " date)
           (-> m (assoc :g/start-end-model [date end])
-              (bd/weekify-element :g/start-end-model)))
+              (bd/weekify :g/start-end-model)))
         (if (t/> date end)
           (do
             ;(println "moved end: " date)
             (-> m (assoc :g/start-end-model [start date])
-                (bd/weekify-element :g/start-end-model)))
+                (bd/weekify :g/start-end-model)))
           m)))))
 
 (defn update-project-start-end
@@ -487,7 +487,7 @@
     (-> m
         (assoc-in [:g/projects project-name :g/start-end-project]
                   [start-of-p end-of-p])
-        (update-in [:g/projects project-name] bd/weekify-element :g/start-end-project)
+        (update-in [:g/projects project-name] bd/weekify :g/start-end-project)
         (update-model-start-end start-of-p)
         (update-model-start-end end-of-p))))
 
@@ -563,8 +563,8 @@
         model-with-load    (assoc model :g/load load)
         model-with-task    (assoc-in model-with-load [:g/projects project-id :g/tasks (:g/entity-id task)] task)
         ; TODO what if equal?
-        model-with-task    (update-in model-with-task [:g/projects project-id :g/tasks (:g/entity-id task)] bd/weekify-element :g/start)
-        model-with-task    (update-in model-with-task [:g/projects project-id :g/tasks (:g/entity-id task)] bd/weekify-element :g/end)]
+        model-with-task    (update-in model-with-task [:g/projects project-id :g/tasks (:g/entity-id task)] bd/weekify :g/start)
+        model-with-task    (update-in model-with-task [:g/projects project-id :g/tasks (:g/entity-id task)] bd/weekify :g/end)]
     (-> model-with-task
         (update-project-start-end project-id))))
 

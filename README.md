@@ -26,7 +26,8 @@ View everything in Realtime.
     - ok: check, if idx in view model is needed - e.g. use id instead for key in view
 - view
     - ok: prevent the curser from disappearing while moving tasks
-    - make a project task details view.
+    - ok make a project task details view.
+    - open a file and load data (edn? same as v-pipe? -> insta-parse?)
     - make the load view (in weeks and in months)
     - make an simple capa-editor (maybe instaparse?)
     - make a simple template editor - a template is just a normal project,
