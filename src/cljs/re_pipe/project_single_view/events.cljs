@@ -8,7 +8,7 @@
             [goog.events :as events]
             [goog.object :as gobj]
             [goog.functions]
-            [belib.core :as bc :refer [pprint]]
+            [belib.core :as bc :refer [bpp]]
             [belib.browser :as bb]
             [belib.spec :as bs]
             [re-pipe.model :as model]

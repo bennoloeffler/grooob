@@ -70,7 +70,7 @@
   :min-lein-version "2.0.0"
 
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
-  :test-paths ["test/clj" "test/cljc" "src/clj" "src/cljc"]
+  :test-paths ["test/clj" "test/cljc" "src/clj" "src/cljc" "checkouts/belib/src/cljc"]
   :resource-paths ["resources" "target/cljsbuild"]
   :target-path "target/%s/"
   :main ^:skip-aot re-pipe.core

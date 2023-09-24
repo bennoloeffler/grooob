@@ -15,7 +15,9 @@
     [clojure.spec.alpha :as s]
     [hyperfiddle.rcf :refer [tests]]
     [clojure.test.check.generators :as gen]
-    [playback.core]))
+    [playback.core]
+    [belib.date-parse-messy :as parse-messy]))
+
 
 (hyperfiddle.rcf/enable! true)
 
@@ -576,8 +578,8 @@
         load-eng (get-in ex-added [:g/load "engineering-id"])]
     ;; the capa is added in load
     (get-in load-eng [:g/total-load 693]) := 24.0 ; 30.0 epoch week is much bigger...
-    (get-in load-eng [:g/total-load 2780]) := 7 ;
-    (get-in load-eng [:g/total-load 2781]) := 3 ;
+    (get-in load-eng [:g/total-load 2780]) := 6 ;
+    (get-in load-eng [:g/total-load 2781]) := 4 ;
 
     ;; the task is aded in project
     (:g/entity-id (get-in ex-added [:g/projects "p1" :g/tasks task-id])) := task-id

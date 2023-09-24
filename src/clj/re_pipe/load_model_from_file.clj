@@ -2,7 +2,12 @@
   (:require [instaparse.core :as insta]
             [clojure.java.io :as io]
             [clojure.string :as str]
-            [hyperfiddle.rcf :refer [tests]]))
+            [belib.date-parse-messy :as parse-messy]
+            [belib.core :as bc]
+            [belib.date-time :as bd]
+            [tick.core :as t]
+            [hyperfiddle.rcf :refer [tests]]
+            [belib.test :as bt :refer [expect-ex return-ex]]))
 
 (hyperfiddle.rcf/enable! true)
 
@@ -131,13 +136,13 @@
                   (println "ERROR: " (:insta-error insta-data))
                   insta-data))
 
+  (insta/failure? (:insta-parsed data-err))
+
   (Projekt-Start-End-Abt-Kapa "p1 22.04.1999 22.12.2323 res1 454.0  abc")
 
   (def parsed (Projekt-Start-End-Abt-Kapa
                 (slurp "bsp-daten/bsp-00-nur-tasks/Projekt-Start-End-Abt-Kapa.txt")
                 :total true))
-
-  (insta/failure? (:insta-parsed data-err))
 
   (first (str/split (with-out-str (println (insta/get-failure (:insta-parsed data-err))))
                     #"Expected:"))
@@ -336,16 +341,19 @@
   :end)
 
 
-{:public-holidays ["2023-10-03" "2023-10-03"]
+(def test-capa-data {:public-holidays ["2023-10-03" "2023-10-03"]
 
- :reduced-weeks   [{:week "2023-W24" :percent 60}
-                   {:week "2023-W25" :percent 60}]
+                     :reduced-weeks   [{:week "2023-W24" :percent 60}
+                                       {:week "2023-W25" :percent 60}]
 
- :resources       {"M-Kon" [{:yellow 23 :red 100} ;; first has no start
-                            {:start "2023-W29" :yellow 40 :red 200}
-                            {:start "2023-W34" :yellow 30 :red 150}
-                            {:week "2023-W52" :percent 60}]}}
+                     :resources       {"M-Kon" [{:yellow 23 :red 100} ;; first has no start
+                                                {:start "2023-W29" :yellow 40 :red 200}
+                                                {:start "2023-W34" :yellow 30 :red 150}
+                                                {:week "2023-W52" :percent 60}]}})
+(def test-capa-str (pr-str test-capa-data))
 
+(comment
+  (read-string test-capa-str))
 
 "
 ---

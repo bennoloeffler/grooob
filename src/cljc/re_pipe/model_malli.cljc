@@ -1,11 +1,11 @@
 (ns re-pipe.model-malli
   (:require ;[puget.printer :refer [cprint]] not cljs
-    #?(:cljs [debux.cs.core :as d :refer-macros [clog clogn dbg dbgn break
-                                                 clog_ clogn_ dbg_ dbgn_ break_]]
-       :clj  [debux.cs.core :as d :refer [clog clogn dbg dbgn break
-                                          clog_ clogn_ dbg_ dbgn_ break_]])
+    #_#?(:cljs [debux.cs.core :as d :refer-macros [clog clogn dbg dbgn break
+                                                   clog_ clogn_ dbg_ dbgn_ break_]]
+         :clj  [debux.cs.core :as d :refer [clog clogn dbg dbgn break
+                                            clog_ clogn_ dbg_ dbgn_ break_]])
     [belib.date-time :as bd]
-    [clojure.pprint :refer [pprint]]
+    ;[clojure.pprint :refer [pprint]]
     #?@(:cljs [[java.time :refer [LocalDateTime LocalDate]]])
     [malli.core :as m]
     [malli.error :as me]
@@ -282,7 +282,7 @@
 
 (tests
   (bm/hum-err model-schema
-              (bd/assoc-in-date test-model
+              (bd/assoc-date-in test-model
                                 [:projects 0 :tasks 0]
                                 :start
                                 (d "2010-01-06")))
