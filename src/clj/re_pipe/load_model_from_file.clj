@@ -12,7 +12,7 @@
 (hyperfiddle.rcf/enable! true)
 
 
-(comment
+(comment ; simples insta parser
 
   (def as-and-bs
     (insta/parser

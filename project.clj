@@ -75,6 +75,9 @@
   :target-path "target/%s/"
   :main ^:skip-aot re-pipe.core
 
+  :global-vars {*warn-on-reflection* true
+                *assert* true}
+
   :plugins []
   :clean-targets ^{:protect false}
   [:target-path "target/cljsbuild"]
@@ -124,8 +127,8 @@
                    :resource-paths ["env/dev/resources"]
                    :repl-options   {:init-ns user
                                     :timeout 120000}
-                   :injections     [(require 'pjstadig.humane-test-output)
-                                    (pjstadig.humane-test-output/activate!)]}
+                   #_:injections     #_[(require 'pjstadig.humane-test-output)
+                                        (pjstadig.humane-test-output/activate!)]}
    :project/test  {:jvm-opts       ["-Dconf=test-config.edn"]
                    :resource-paths ["env/test/resources"]}
 

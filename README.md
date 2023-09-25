@@ -16,17 +16,21 @@ View everything in Realtime.
 
 - sort imports
 - make pre and post conditions in model switchable?
+- use https://github.com/weavejester/medley
 
 - model
+    - malli - without
     - ok: make the api generate different names and ids and make sure, names are not used for ids.
     - ok: make the api generate proper IDs inside the model (project, task, resource)
     - ok: make the api generate proper sequence-num and have a move-up and move-down for projects and resources
     - ok: make the tasks appear in the sequence of the ressources
     - ok: remove pipeline in the model
     - ok: check, if idx in view model is needed - e.g. use id instead for key in view
+
 - view
     - ok: prevent the curser from disappearing while moving tasks
     - ok make a project task details view.
+    - TODO: make a raw-data-view (remove weekified data, dates to strings), transform back
     - open a file and load data (edn? same as v-pipe? -> insta-parse?)
     - make the load view (in weeks and in months)
     - make an simple capa-editor (maybe instaparse?)
