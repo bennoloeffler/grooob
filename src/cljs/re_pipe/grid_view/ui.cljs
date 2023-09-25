@@ -12,7 +12,7 @@
             [belib.browser :as bb]
             [belib.date-time :as bd]
             [re-pipe.utils :as utils]
-            [re-pipe.model-spec :as ms]
+            [re-pipe.model.model-spec :as ms]
     ;[belib.cal-week-year :as bc]
             [ajax.core :as ajax]
             [goog.history.EventType :as HistoryEventType]

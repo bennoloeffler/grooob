@@ -72,8 +72,7 @@
     (= field-key :g/entity-id)
     (do
       (assert disabled "fields that are an id need to be read-only: :g/entity-id")
-      (str (subs (clojure.string/reverse (str val))
-                 0 4) "[...]"))
+      (clojure.string/reverse (str (subs (clojure.string/reverse (str val)) 0 4) "...")))
 
     :else val))
 
@@ -134,7 +133,8 @@
               select      [:div.select.is-small.is-fullwidth
                            {:class @_value}
                            (into [:select
-                                  {:class     (when disabled "disable")
+                                  {;:value     selected
+                                   :class     (when disabled "disable")
                                    :on-change #(let [val (-> % .-target .-value)]
                                                  ;val-t (transform-back val field-descriptor)]
                                                  ;(println "val:" val "back:" (:all values))
@@ -143,7 +143,7 @@
                                                                                      field-key     ((:all values) val)})]
                                                      (rf/dispatch full-event))
                                                    (rf/dispatch [:set/data-path full-path ((:all values) val)])))}
-                                  (with-meta [:option {:selected true} selected]
+                                  (with-meta [:option selected]
                                              {:key (str id-this-editor selected)})]
                                  options)]]
           (if label?

@@ -1,6 +1,6 @@
 (ns re-pipe.project-details.ui
   (:require [re-frame.core :as rf]
-            [re-pipe.model :as model]
+            [re-pipe.model.model :as model]
             [reagent.core :as reagent]
             [reagent.dom :as rd]
             [tick.core :as t]
@@ -13,7 +13,7 @@
             [belib.browser :as bb]
             [belib.spec :as bs]
             [re-pipe.grid-view.ui :as grid-view]
-            [re-pipe.model-spec :as ms]
+            [re-pipe.model.model-spec :as ms]
             [re-pipe.utils :as utils]
             [belib.core :as bc]
             [ajax.core :as ajax]
@@ -82,46 +82,47 @@
           {:field-key  :g/end
            :field-type "date"}]
 
-         #_[:div.columns.mt-0.mb-0.pt-0.pb-0.is-mobile
-            [:div.column.is-offset-2.mt-0.mb-0.pt-0.pb-0.is-mobile
-             [:h1.is-6.mb-1.mt-2.pl-2 "first Task"]]]
-         #_[re-c/edit-one-entity
-            true
-            {:entity-id       t-id
-             :entity-map-path [:model :g/projects p-id :g/tasks]
-             :entity-id-key   :g/entity-id}
+         [:div.columns.mt-0.mb-0.pt-0.pb-0.is-mobile
+          [:div.column.is-offset-2.mt-0.mb-0.pt-0.pb-0.is-mobile
+           [:h1.is-6.mb-1.mt-2.pl-2 "first Task"]]]
 
-            [{:field-key     :g/entity-id
-              ;:field-type    "number"
-              :field-show-as "ID"
-              :disabled      true}
-             ;:update-fn     [:update-task p-id]}
+         [re-c/edit-one-entity
+          true
+          {:entity-id       t-id
+           :entity-map-path [:model :g/projects p-id :g/tasks]
+           :entity-id-key   :g/entity-id}
 
-             {:field-key     :g/start
-              :field-type    "date"
-              :field-show-as "Start"
-              :update-fn     [:update-task p-id]}
+          [{:field-key     :g/entity-id
+            ;:field-type    "number"
+            :field-show-as "ID"
+            :disabled      true}
+           ;:update-fn     [:update-task p-id]}
 
-             {:field-key     :g/end
-              :field-type    "date"
-              :field-show-as "End"
-              :update-fn     [:update-task p-id]}
+           {:field-key     :g/start
+            :field-type    "date"
+            :field-show-as "Start"
+            :update-fn     [:update-task p-id]}
 
-             {:field-key     :g/resource-id
-              :field-show-as "Resource"
-              :field-type    "ref"
-              :ref-path      [:model :g/resources]
-              :ref-id        :g/entity-id
-              :ref-selectors [:g/name]
-              :update-fn     [:update-task p-id]}
+           {:field-key     :g/end
+            :field-type    "date"
+            :field-show-as "End"
+            :update-fn     [:update-task p-id]}
 
-             {:field-key     :g/capacity-need
-              :field-type    "number"
-              :field-show-as "Capacity"
-              :update-fn     [:update-task p-id]}
+           {:field-key     :g/resource-id
+            :field-show-as "Resource"
+            :field-type    "ref"
+            :ref-path      [:model :g/resources]
+            :ref-id        :g/entity-id
+            :ref-selectors [:g/name]
+            :update-fn     [:update-task p-id]}
 
-             {:field-key :g/task-name
-              #_:update-fn  #_[:update-task p-id]}]]
+           {:field-key     :g/capacity-need
+            :field-type    "number"
+            :field-show-as "Capacity"
+            :update-fn     [:update-task p-id]}
+
+           {:field-key :g/task-name
+            #_:update-fn  #_[:update-task p-id]}]]
 
 
          [:div.columns.mt-0.mb-0.pt-0.pb-0.is-mobile
@@ -134,10 +135,10 @@
            :entity-map-path [:model :g/projects p-id :g/tasks]
            :entity-id-key   :g/entity-id}
 
-          [#_{:field-key :g/entity-id
-              ;:field-type "number"
-              ;:field-show-as "ID"
-              :disabled  true}
+          [{:field-key :g/entity-id
+            ;:field-type "number"
+            ;:field-show-as "ID"
+            :disabled  true}
 
            {:field-key     :g/start
             :field-type    "date"

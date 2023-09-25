@@ -1,7 +1,7 @@
 (ns re-pipe.grid-view.events
   (:require [goog.events :as events]
             [re-frame.core :as rf]
-            [re-pipe.model :as model]
+            [re-pipe.model.model :as model]
             [belib.browser :as bb])
   (:import [goog.events EventType]))
 

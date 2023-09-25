@@ -1,4 +1,4 @@
-(ns re-pipe.model-spec
+(ns re-pipe.model.model-spec
   (:require
     ;[java-time.api :as jt]
     [tick.core :as t]

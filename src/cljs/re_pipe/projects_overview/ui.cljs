@@ -12,7 +12,7 @@
             [belib.browser :as bb]
             [belib.spec :as bs]
             [re-pipe.grid-view.ui :as grid-view]
-            [re-pipe.model-spec :as ms]
+            [re-pipe.model.model-spec :as ms]
             [re-pipe.utils :as utils]
             [ajax.core :as ajax]
             [goog.history.EventType :as HistoryEventType]

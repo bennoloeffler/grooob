@@ -10,7 +10,7 @@
     [re-pipe.experiments :as ex]
     [re-pipe.events]
     [re-pipe.utils :as utils]
-    [re-pipe.model :as model]
+    [re-pipe.model.model :as model]
     [reitit.core :as reitit]
     [reitit.frontend.easy :as rfe]
     [clojure.string :as string]

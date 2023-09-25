@@ -1,4 +1,4 @@
-(ns re-pipe.model-malli
+(ns re-pipe.model.model-malli
   (:require ;[puget.printer :refer [cprint]] not cljs
     #_#?(:cljs [debux.cs.core :as d :refer-macros [clog clogn dbg dbgn break
                                                    clog_ clogn_ dbg_ dbgn_ break_]]

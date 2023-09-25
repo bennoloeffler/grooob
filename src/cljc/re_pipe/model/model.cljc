@@ -1,4 +1,4 @@
-(ns re-pipe.model
+(ns re-pipe.model.model
   (:require
     ;[debux.common.macro-specs :as ms]
     [belib.date-time :as bd]
@@ -11,7 +11,7 @@
     [belib.core :as bc] ; also bc/pprint
     [belib.spec :as bs]
     ;[belib.browser :as bb]
-    [re-pipe.model-spec :as ms :refer [example-model get-rand-project-id projects-ids-range resources-ids-range next-sequence-num]]
+    [re-pipe.model.model-spec :as ms :refer [example-model get-rand-project-id projects-ids-range resources-ids-range next-sequence-num]]
     [clojure.spec.alpha :as s]
     [hyperfiddle.rcf :refer [tests]]
     [clojure.test.check.generators :as gen]
