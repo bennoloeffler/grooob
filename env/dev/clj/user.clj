@@ -1,13 +1,13 @@
 (ns user
   "Userspace functions you can run by default in your local REPL."
   (:require
-    [re-pipe.config :refer [env]]
+    [grooob.config :refer [env]]
     [clojure.pprint]
     [clojure.spec.alpha :as s]
     [expound.alpha :as expound]
     [mount.core :as mount]
     [clojure.tools.logging :as log]
-    [re-pipe.core :refer [start-app]]
+    [grooob.core :refer [start-app]]
     [clojure.tools.namespace.repl :refer (refresh refresh-all clear)]
     [playback.core] ; in order to be able to use #> #>> #><[] in the code
     [belib.core :as b]))
@@ -41,12 +41,12 @@
   You'll usually want to run this on startup."
   []
   (log/debug "\n\nSTARTING grooob.com")
-  (mount/start-without #'re-pipe.core/repl-server))
+  (mount/start-without #'grooob.core/repl-server))
 
 (defn stop
   "Stops application."
   []
-  (mount/stop-except #'re-pipe.core/repl-server))
+  (mount/stop-except #'grooob.core/repl-server))
 
 (defn restart
   "Restarts application."

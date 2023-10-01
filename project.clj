@@ -1,4 +1,4 @@
-(defproject re-pipe "0.1.0-SNAPSHOT"
+(defproject grooob "0.1.0-SNAPSHOT"
 
   :description ""
   :url ""
@@ -72,7 +72,7 @@
   :test-paths ["test/clj" "test/cljc" "src/clj" "src/cljc" "checkouts/belib/src/cljc"]
   :resource-paths ["resources" "target/cljsbuild" "classpath:public"]
   :target-path "target/%s/"
-  :main ^:skip-aot re-pipe.core
+  :main ^:skip-aot grooob.core
 
   :global-vars {*warn-on-reflection* true
                 *assert* true}
@@ -89,7 +89,7 @@
 
                    :prep-tasks     ["compile" ["run" "-m" "shadow.cljs.devtools.cli" "release" "app"]]
                    :aot            :all
-                   :uberjar-name   "re-pipe.jar"
+                   :uberjar-name   "grooob.jar"
                    :source-paths   ["env/prod/clj" "env/prod/cljs"]
                    :resource-paths ["env/prod/resources"]}
 
