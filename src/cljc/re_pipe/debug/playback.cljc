@@ -1,4 +1,4 @@
-(ns re-pipe.playback
+(ns re-pipe.debug.playback
   (:require [playback.core]
             #?(:cljs [debux.cs.core :as d :refer-macros [clog clogn dbg dbgn break
                                                          clog_ clogn_ dbg_ dbgn_ break_]]

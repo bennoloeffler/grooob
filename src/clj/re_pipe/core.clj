@@ -1,15 +1,30 @@
 (ns re-pipe.core
   (:require
-    [re-pipe.model :as model]
+    [re-pipe.model.model :as model]
     [re-pipe.handler :as handler]
     [re-pipe.nrepl :as nrepl]
     [luminus.http-server :as http]
     [re-pipe.config :refer [env]]
     [clojure.tools.cli :refer [parse-opts]]
     [clojure.tools.logging :as log]
-    [mount.core :as mount])
+    [mount.core :as mount]
+    [medley.core :as med])
   (:gen-class))
 
+
+(comment
+  (replace {0 10,
+            1 9,
+            2 8,
+            3 7,
+            4 6}
+           [0 2 4])
+  ; implicit
+  (replace [10 9 8 7 6] [0 2 4])
+  (replace {:valiiid :valid-replaced} [:valiiid :val :valiiid :valeo :vac])
+  (replace [:valid-replaced] [:valiiid :val :valiiid :valeo :vac])
+  (assoc [0 1 2 3 4 5] 2 27)
+  (med/random-uuid))
 
 ;; log uncaught exceptions in threads
 (Thread/setDefaultUncaughtExceptionHandler

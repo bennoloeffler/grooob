@@ -5,11 +5,14 @@
             [re-pipe.time-transit]))
 
 
+
+
+
 (defn overview-proj-details-menu []
   (let [_page (rf/subscribe [:common/page-id])]
     (fn []
       ;(println "page: " @_page)
-      [:div.tabs.is-small ;.is-centered.is-boxed
+      [:div.tabs ;.is-small ;.is-centered.is-boxed
        [:ul
         [:li {:class (when (= @_page :projects-portfolio) :is-active)} #_(bh/cs (when (= @_page :projects-portfolio) :is-active))
          [:a {:on-click #(rf/dispatch [:common/navigate! :projects-portfolio nil nil])} "Overview"]]
@@ -17,7 +20,12 @@
          [:a {:on-click #(rf/dispatch [:common/navigate! :project nil nil])} "Project"]]
         [:li {:class (when (= @_page :project-details) :is-active)}
          [:a {:on-click #(rf/dispatch [:common/navigate! :project-details nil nil])} "Details"]]
-        [:li [:a "Load"]]]])))
+        [:li {:class (when (= @_page :raw-data) :is-active)}
+         [:a {:on-click #(rf/dispatch [:common/navigate! :raw-data nil nil])} "Raw"]]]])))
+
+
+
+
 
 (defn edit-form->val
   "transforms the value in its edit form (mostly string)

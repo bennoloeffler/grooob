@@ -178,7 +178,7 @@
    [:span "call with user logged in"]])
 
 (defn logout-user-button []
-  [:a.button.is-light.m-1
+  [:a.button.m-1
    {:href "#/logout" :on-click #(rf/dispatch [:user/logout])}
    [:span.icon.is-large>i.fas.fa-1x.fa-right-from-bracket]
    [:span "logout"]])

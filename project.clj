@@ -61,17 +61,16 @@
 
                  [com.github.gnl/playback "0.3.10"]
                  [lambdaisland/deep-diff2 "2.10.211"]
-
-                 [mvxcvi/puget "1.3.2"] ;colour print data
-                 [instaparse "1.4.12"]]
-
+                 [instaparse "1.4.12"]
+                 [dev.weavejester/medley "1.6.0"]
+                 [no.cjohansen/portfolio "2023.07.15"]]
 
 
   :min-lein-version "2.0.0"
 
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
   :test-paths ["test/clj" "test/cljc" "src/clj" "src/cljc" "checkouts/belib/src/cljc"]
-  :resource-paths ["resources" "target/cljsbuild"]
+  :resource-paths ["resources" "target/cljsbuild" "classpath:public"]
   :target-path "target/%s/"
   :main ^:skip-aot re-pipe.core
 
@@ -109,7 +108,7 @@
                                     [pjstadig/humane-test-output "0.11.0"]
                                     [prone "2021-04-23"]
                                     [com.clojure-goes-fast/clj-async-profiler "1.0.3"]
-
+                                    ;[mvxcvi/puget "1.3.2"] ; see profiles.clj
                                     [re-frisk "1.5.2"]
                                     [ring/ring-devel "1.9.5"]
                                     [ring/ring-mock "0.4.0"]]

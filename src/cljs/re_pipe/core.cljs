@@ -21,8 +21,10 @@
     [re-pipe.project-single-view.ui :as psv]
     [re-pipe.projects-overview.ui :as pov]
     [re-pipe.project-details.ui :as pdv]
+    [re-pipe.raw-data-view.ui :as rdv]
     [re-pressed.core :as rp]
-    [re-pipe.playback])
+    [re-pipe.debug.playback]
+    [re-pipe.debug.portfolio :as ui-test])
   (:import goog.History
            [goog.events EventType KeyHandler]))
 
@@ -90,16 +92,17 @@
 (defn input-field
   "Assoc data-atom key value-of-input at every key stroke."
   [data-atom key type placeholder]
-  [:input.input.is-primary
-   {:type      (name type) :placeholder placeholder
-    :on-change #(let [val (-> % .-target .-value)]
-                  (swap! data-atom assoc key val))}])
+  [:input.input
+   {:type        (name type)
+    :placeholder placeholder
+    :on-change   #(let [val (-> % .-target .-value)]
+                    (swap! data-atom assoc key val))}])
 
 
 (defn register-button []
   (let [smaller (fa-smaller)]
     (fn []
-      [:a.button.is-light.is-outlined.mr-1.is-fullwidth
+      [:a.button.is-outlined.mr-1.is-fullwidth.is-primary
        {:href "#/register"}
        [:span.icon.is-large>i (bh/cs @smaller "fas fa-pen-nib")]
        [:span "create free account"]])))
@@ -108,7 +111,7 @@
 (defn login-with-google-button []
   (let [bounce-off (fa-bounce-off)]
     (fn []
-      [:a.button.is-light.is-outlined.mr-1.is-fullwidth
+      [:a.button.is-outlined.mr-1.is-fullwidth
        {:href "/login-with-google"}
        [:span.icon.is-large>i (bh/cs @bounce-off "fas fa-lg fa-brands fa-google")]
        [:span "login with google account"]])))
@@ -119,7 +122,7 @@
   (fn []
     (let [data (atom {:user "" :pw ""})]
       (fn []
-        [:div.container
+        [:div.container #_{:style {:background utils/background-color}}
          [:div.columns
           [:div.column.is-5
 
@@ -137,9 +140,9 @@
             [:div.column
              [:label {:for "Name"} "Password"]
              [input-field data :pw :password "Password"]
-             [:a.is-size-7.has-text-primary {:href "#/forget-password"} "forget password?"]]
+             [:a.is-size-7.has-text-primary {:href "#/forget-password"} "forgot password?"]]
             [:div.column
-             [:button.button.is-light.is-outlined.is-fullwidth {:on-click #(rf/dispatch [:user/login (:user @data) (:pw @data)])}
+             [:button.button.is-outlined.is-fullwidth {:on-click #(rf/dispatch [:user/login (:user @data) (:pw @data)])}
               [:span.icon.is-large>i.fas.fa-1x.fa-sign-in-alt] [:span "login"]]
              #_[:button.button.is-primary.is-fullwidth
                 {:type     "submit"
@@ -184,7 +187,7 @@
           ;[:label.checkbox [:input {:type "checkbox"}] " Remember me"]]
           ;[:input {:type "checkbox"}] " I agree to the" [:a.has-text-primary {:href "#"} " terms and conditions"]]
           [:div.column
-           [:button.button.is-light.is-outlined.is-fullwidth
+           [:button.button.is-outlined.is-fullwidth
             {:type     "submit"
              :on-click #(rf/dispatch [:user/register @data])}
             [:span [:b "Create an account"]]]]
@@ -261,7 +264,7 @@
            [:div "logged in: NO"])
        [psv/project-single-view "project-single-form"]])))
 
-(defn project-details []
+(defn project-details-page []
   (let [user-data (rf/subscribe [:user])]
     (fn []
       [:<>
@@ -279,6 +282,16 @@
            [:div "logged in: NO"])
 
        [pov/projects-overview-form "projects-overview-form"]])))
+
+(defn raw-data-page []
+  (let [user-data (rf/subscribe [:user])]
+    (fn []
+      [:<>
+       #_(if @user-data
+           [:div "logged in: " [:b (:identity @user-data)]]
+           [:div "logged in: NO"])
+
+       [rdv/raw-data-form]])))
 
 
 (defn home-page []
@@ -301,30 +314,38 @@
    [home-page]])
 
 
+
+
+
 (defn page []
   (let [page        (rf/subscribe [:common/page])
         alert-msg   (rf/subscribe [:alert-message])
         alert-blink (rf/subscribe [:alert-blink])]
     (fn []
-      (if @page
-        [:div
-         [navbar]
-         [:div {:style {:padding-top  "4px"
-                        :padding-left "30px"
-                        :font-weight  "bold"
-                        :color        "white"
-                        :height       (if @alert-msg "40px" "5px")
-                        :background   (if @alert-msg "darkred" "white")
-                        :transition   "font-size 1s, height 500ms"
-                        ;:visibility (if @alert-msg "visible" "hidden")
-                        :font-size    (if @alert-msg "20px" "5px")}} @alert-msg]
+      (println "ui-test: " @ui-test/ui-test)
+      (println "page: " @page)
+      (if @ui-test/ui-test
+        (do (ui-test/start)
+            [:div])
+        (if @page
+          [:div
+           [navbar]
+           [:div {:style {:padding-top  "4px"
+                          :padding-left "30px"
+                          :font-weight  "bold"
+                          ;:color        "white"
+                          :height       (if @alert-msg "40px" "5px")
+                          :background   (if @alert-msg "darkred" "white")
+                          :transition   "font-size 1s, height 500ms"
+                          ;:visibility (if @alert-msg "visible" "hidden")
+                          :font-size    (if @alert-msg "20px" "5px")}} @alert-msg]
 
-         [:section.section {:style {:background (if @alert-blink "darkred" utils/background-color)}} [:div.container>div.content]
-          [@page]]]
-        [:div
-         [navbar]
-         [:div.container-404
-          [:section.section [:div.text-404 "Oooops..."] [:div.text-404 "Page not found..."]]]]))))
+           [:section.section {:style {:background (if @alert-blink "darkred" "white" #_utils/background-color)}} [:div.container>div.content]
+            [@page]]]
+          [:div
+           [navbar]
+           [:div.container-404
+            [:section.section [:div.text-404 "Oooops..."] [:div.text-404 "Page not found..."]]]])))))
 
 
 
@@ -352,14 +373,18 @@
                   :view        #'project-single-page
                   :controllers [#_{:start (fn [_] (rf/dispatch [:view/init]))}]}]
      ["/project-details" {:name        :project-details
-                          :view        #'project-details
+                          :view        #'project-details-page
                           :controllers [#_{:start (fn [_] (rf/dispatch [:view/init]))}]}]
+     ["/raw-data" {:name        :raw-data
+                   :view        #'raw-data-page
+                   :controllers [#_{:start (fn [_] (rf/dispatch [:view/init]))}]}]
 
      ["/google-login" {:name        :google-login
                        :view        #'home-page-from-google
                        :controllers [{:start (fn [req]
                                                (rf/dispatch [:login-google req])
                                                #_(rf/dispatch [:view/init]))}]}]]))
+
 
 
 (defn start-router! []
@@ -401,6 +426,7 @@
              (assoc-in [:model]
                        (model/generate-random-model 20)
                        #_(model/generate-simplest-model)))}))
+
 
 (defn init! []
   (start-router!)

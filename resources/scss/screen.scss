@@ -10,11 +10,12 @@
 // Set your brand colors
 //$purple: #8A4D76;
 //$pink: #FA7C91;
-$brown: #8F5615;
-$light-brown: #DB994D;
+
+//$brown: #8F5615;
+//$light-brown: #DB994D;
 $dark-blue: #58a0bc;
-$light-blue: #73D5FF;
-$blue: #4DB0DC;
+//$light-blue: #73D5FF;
+//$blue: #4DB0DC;
 
 
 //$beige-light: #D0D1CD;
@@ -22,10 +23,12 @@ $blue: #4DB0DC;
 
 // Update Bulma's global variables
 $family-sans-serif: "Titillium Web", sans-serif;
-$grey-dark: $brown;
-$grey-light: $blue;
-$primary: $dark-blue;
-$link: $dark-blue;
+
+//$grey-dark: $brown;
+//$grey-light: $blue;
+$primary: #f48023;
+//$link: $dark-blue;
+
 //$widescreen-enabled: false;
 //$fullhd-enabled: false;
 
@@ -54,6 +57,10 @@ $control-radius-small: 4px;
 
 @import "../../node_modules/bulma/bulma.sass";
 @import "../../node_modules/@creativebulma/bulma-divider/src/sass/index.sass";
+
+.text-s { // portfolio
+  background-color: grey;
+}
 
 /* in order to make buttons have text left*/
 .justify-content-start {
@@ -133,19 +140,24 @@ $control-radius-small: 4px;
   left: 0;
   height: 25px;
   width: 25px;
-  background-color: #fff;
+  background-color: #aaa;
   border-radius: 20%;
 
 }
 
 /* On mouse-over, add a grey background color */
 .checkbox-container:hover input ~ .checkbox-checkmark {
-  background-color: #eee;
+  background-color: $primary;
+}
+
+/* When the checkbox is checked, add a blue background */
+.checkbox-container:hover input:checked ~ .checkbox-checkmark {
+  background-color: $primary;
 }
 
 /* When the checkbox is checked, add a blue background */
 .checkbox-container input:checked ~ .checkbox-checkmark {
-  background-color: #555;
+  background-color: #aaa;
 }
 
 /* Create the checkmark/indicator (hidden when not checked) */

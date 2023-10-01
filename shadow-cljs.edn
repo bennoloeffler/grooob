@@ -1,7 +1,9 @@
-{:nrepl {:port 7002}
+{:nrepl    {:port 7002}
+ :dev-http {8080 ["public" "classpath:public"]}
  :builds
  {:app
-  {:target                             :browser
+  {
+   :target                             :browser
    :output-dir                         "target/cljsbuild/public/js"
    :asset-path                         "/js"
    :modules                            {:app {:entries [re-pipe.app]}}
@@ -15,4 +17,4 @@
 
   :test {:target  :node-test, :output-to "target/test/test.js"
          :autorun true}}
- :lein  {:profile "+dev"}}
+ :lein     {:profile "+dev"}}
