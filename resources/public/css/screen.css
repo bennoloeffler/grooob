@@ -7947,6 +7947,17 @@ a.has-text-danger-dark:hover, a.has-text-danger-dark:focus {
   .divider.is-danger.is-light::after, .divider.is-danger.is-light::before {
     background-color: #feecf0; }
 
+.fav-icon {
+  pointer-events: all;
+  cursor: pointer; }
+
+.span .i {
+  pointer-events: initial; }
+
+.h4 {
+  background-color: grey;
+  color: white; }
+
 .text-s {
   background-color: grey; }
 
@@ -7970,8 +7981,8 @@ a.has-text-danger-dark:hover, a.has-text-danger-dark:focus {
 
 .container-404 {
   padding: 50px;
-  background-image: url("404.jpg");
-  background-size: cover;
+  color: white;
+  background-color: #f48023;
   height: 900px; }
 
 .is-blue {
@@ -8018,20 +8029,24 @@ a.has-text-danger-dark:hover, a.has-text-danger-dark:focus {
   left: 0;
   height: 25px;
   width: 25px;
-  background-color: #aaa;
+  background-color: #f48023;
+  opacity: 30%;
   border-radius: 20%; }
 
 /* On mouse-over, add a grey background color */
 .checkbox-container:hover input ~ .checkbox-checkmark {
-  background-color: #f48023; }
+  background-color: #f48023;
+  opacity: 70%; }
 
 /* When the checkbox is checked, add a blue background */
 .checkbox-container:hover input:checked ~ .checkbox-checkmark {
-  background-color: #f48023; }
+  background-color: #f48023;
+  opacity: 70%; }
 
 /* When the checkbox is checked, add a blue background */
 .checkbox-container input:checked ~ .checkbox-checkmark {
-  background-color: #aaa; }
+  background-color: #f48023;
+  opacity: 30%; }
 
 /* Create the checkmark/indicator (hidden when not checked) */
 .checkbox-checkmark:after {

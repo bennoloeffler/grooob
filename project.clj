@@ -28,7 +28,8 @@
                  [org.clojure/tools.cli "1.0.206"]
                  [org.clojure/tools.logging "1.2.4"]
                  [org.webjars.npm/bulma "0.9.3"]
-                 [org.webjars.npm/material-icons "1.0.0"]
+                 ;[org.webjars.npm/material-icons "1.0.0"]
+                 [org.webjars/font-awesome "6.4.2"]
                  [org.webjars/webjars-locator "0.42"]
                  [org.webjars/webjars-locator-jboss-vfs "0.1.0"]
                  [re-frame "1.2.0"]
@@ -66,6 +67,7 @@
                  [no.cjohansen/portfolio "2023.07.15"]]
 
 
+
   :min-lein-version "2.0.0"
 
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
@@ -75,7 +77,7 @@
   :main ^:skip-aot grooob.core
 
   :global-vars {*warn-on-reflection* true
-                *assert* true}
+                *assert*             true}
 
   :plugins []
   :clean-targets ^{:protect false}
@@ -102,7 +104,8 @@
 
    :project/dev   {:jvm-opts       ["-Dconf=dev-config.edn"
                                     "-Djdk.attach.allowAttachSelf"]
-                   :dependencies   [[binaryage/devtools "1.0.4"]
+                   :dependencies   [[hashp "0.2.2"]
+                                    [binaryage/devtools "1.0.4"]
                                     [cider/piggieback "0.5.3"]
                                     [org.clojure/tools.namespace "1.2.0"]
                                     [pjstadig/humane-test-output "0.11.0"]
@@ -111,7 +114,8 @@
                                     ;[mvxcvi/puget "1.3.2"] ; see profiles.clj
                                     [re-frisk "1.5.2"]
                                     [ring/ring-devel "1.9.5"]
-                                    [ring/ring-mock "0.4.0"]]
+                                    [ring/ring-mock "0.4.0"]
+                                    [io.github.borkdude/deflet "0.1.0"]]
                    ; included in ~/.lein/projects.clj
                    ;[philoskim/debux "0.8.3"]
                    ;[djblue/portal "0.37.1"]

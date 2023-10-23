@@ -2,10 +2,16 @@
 
 ## Vision
 
-Planning as rough as possible.
-Less Details. Less data. Less time.
-Together simultaneously as Team.
-View everything in Realtime.
+Simple, fast and good enough  
+capacity planning for  
+project organisations.
+
+Plan rough to see more.
+Less details. Less data. Less time.
+Explore the capacity impact of adding
+or moving of changing projects.
+Edit and view scenarios in realtime during
+meetings together.
 
 ## BUGs
 
@@ -14,12 +20,17 @@ View everything in Realtime.
 
 ## TODOs, next steps
 
+- import font-awesome, instead of material-icons  
+  in assets
 - sort imports
 - make pre and post conditions in model switchable?
 - use https://github.com/weavejester/medley
-
+- use-cases
+    - generate simple raw capa data
+    - generate simple project data
+    - see load (first calc, then view in component)
 - model
-    - malli - without
+    - ok malli - without
     - ok: make the api generate different names and ids and make sure, names are not used for ids.
     - ok: make the api generate proper IDs inside the model (project, task, resource)
     - ok: make the api generate proper sequence-num and have a move-up and move-down for projects and resources
@@ -164,6 +175,12 @@ run server in repl
 (start)
 (stop)
 (restart)
+```
+
+if port 3000 is occupied by zombie process
+
+```
+kill -9 $(lsof -i:3000 -t)
 ```
 
 run client in browser

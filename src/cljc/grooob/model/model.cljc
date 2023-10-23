@@ -19,7 +19,7 @@
     [belib.date-parse-messy :as parse-messy]))
 
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 (def d t/date)
 

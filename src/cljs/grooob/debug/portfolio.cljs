@@ -2,15 +2,21 @@
   (:require
     [reagent.core :as r]
     ;[portfolio.reagent :refer-macros [defscene]]
-    [portfolio.ui :as ui]))
+    [portfolio.ui :as ui]
+    [grooob.debug.scenes]
+    [grooob.comps.scenes]
+    [grooob.ui-login.scenes]
+
+    [grooob.debug.on-off-ui-tests :as on-off-ui-tests]))
 
 
 
 (comment
+  #_DUI
   (p-start)
   (p-stop)
-  (reset! ui-test true)
-  (reset! ui-test false)
+  (reset! on-off-ui-tests/ui-test true)
+  (reset! on-off-ui-tests/ui-test false)
   :end)
 
 (defn reload-home! []
@@ -22,17 +28,17 @@
 (comment
   (reload-home!))
 
-(defonce ui-test (r/atom false))
 
 (defn p-start []
-  (reset! ui-test true))
+  (reset! on-off-ui-tests/ui-test true))
 
 (defn p-stop []
-  (reset! ui-test false)
+  (reset! on-off-ui-tests/ui-test false)
   (reload-home!))
 
 (defn start []
-  (ui/start! {:config {:css-paths ["/css/screen.css"]}}))
+  (ui/start! {:config {:css-paths ["/css/screen.css"
+                                   "/assets/font-awesome/css/all.css"]}}))
 ;:background/default-option-id :dark-mode}}))
 
 

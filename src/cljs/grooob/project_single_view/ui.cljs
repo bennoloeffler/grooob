@@ -2,7 +2,7 @@
   (:require
     [belib.core :as b]
     [re-frame.core :as rf]
-    [grooob.re-comps.ui :as re-c]
+    [grooob.comps.ui :as cui]
     [reagent.core :as reagent]
     [reagent.dom :as rd]
     [tick.core :as t]
@@ -46,7 +46,7 @@
     (rf/dispatch-sync [:grid-view/init component-id])
     (fn []
       [:<>
-       [re-c/overview-proj-details-menu]
+       [cui/overview-proj-details-menu]
        [:div "project: " (:name @_project)]
        #_[:div "project: " (str (last (get (vec (:projects @model)) (:project @cross))))]
        ;[:pre (with-out-str (pprint @model))]

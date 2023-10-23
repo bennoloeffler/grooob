@@ -11,6 +11,8 @@
             [clojure.pprint :refer [pprint]]
             [belib.browser :as bb]
             [belib.spec :as bs]
+            [grooob.model.model-malli :as model-malli]
+
             [grooob.model.model :as model]
             [grooob.model.model-spec :as ms]
             [grooob.utils :as utils]
@@ -140,25 +142,20 @@
 (rf/reg-sub
   :model/model
   (fn [db _]
-    (model/view-model (:model db))))
+    (model-malli/view-model (:model db))))
 
 
 (rf/reg-sub
   :model/current-project
   (fn [db [_ component-id view-or-data]]
-    (let [comp-key            (keyword component-id)
-          current-project-key (-> (:model db)
-                                  :g/projects
-                                  (bc/sorted-map-by-keys :g/sequence-num)
-                                  keys
-                                  vec
-                                  (get (-> db :view comp-key :cross :y)))
-          current-project     (-> (:model db)
-                                  :g/projects
-                                  (get current-project-key))]
+    (let [comp-key        (keyword component-id)
+          current-project (-> (:model db)
+                              :projects
+                              (get (-> db :view comp-key :cross :y)))]
+
       (if (= view-or-data :data)
         current-project
-        (model/current-project current-project (:model db))))))
+        (model-malli/view-current-project current-project (:model db))))))
 
 
 (rf/reg-event-fx
@@ -168,10 +165,7 @@
           db           (:db cofx)
           cross        (get-in db [:view comp-key :cross])
           cross-x      (:x cross)
-          pr-keys      (vec (keys (bc/sorted-map-by-keys
-                                    (get-in db [:model :g/projects])
-                                    :g/sequence-num)))
-          pr-id        (pr-keys (:y cross))
+          pr-idx       (:y cross)
           size-x       (- (:max-cw @_model)
                           (:min-cw @_model))
           in-box       (not (or (>= (+ cross-x x) size-x)
@@ -180,10 +174,8 @@
                          (if in-box
                            (update-in model [:view comp-key :cross :x] + value)
                            model))]
-
-      ;size-y        (count (:projects @_model))]
       {:db       (-> db
-                     (update :model model/move-project pr-id (* 7 x))
+                     (update :model model-malli/move-project pr-idx (* 7 x))
                      (update-cross x))
        :dispatch [:grid-view/cross-visible]})))
 
@@ -193,21 +185,16 @@
     (let [comp-key     (keyword component-id)
           db           (:db cofx)
           cross        (get-in db [:view comp-key :cross])
-          cross-y      (:y cross)
-          pr-keys      (vec (keys (bc/sorted-map-by-keys
-                                    (get-in db [:model :g/projects])
-                                    :g/sequence-num)))
-          pr-id        (pr-keys cross-y)
+          pr-idx       (:y cross)
           size-y       (count (:projects @_model))
-          in-box       (and (< (+ cross-y y) size-y)
-                            (>= (+ cross-y y) 0))
+          in-box       (and (< (+ pr-idx y) size-y)
+                            (>= (+ pr-idx y) 0))
           update-cross (fn [model value]
                          (if in-box
                            (update-in model [:view comp-key :cross :y] + value)
-                           model))]
-
-      ;size-y        (count (:projects @_model))]
+                           model))
+          new-pr-idx   (if in-box (+ pr-idx y) pr-idx)]
       {:db       (-> db
-                     (update :model model/move-up-down pr-id :g/projects y)
+                     (update-in [:model :projects] bc/swap pr-idx new-pr-idx)
                      (update-cross y))
        :dispatch [:grid-view/cross-visible]})))

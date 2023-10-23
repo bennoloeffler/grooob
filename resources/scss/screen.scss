@@ -58,6 +58,17 @@ $control-radius-small: 4px;
 @import "../../node_modules/bulma/bulma.sass";
 @import "../../node_modules/@creativebulma/bulma-divider/src/sass/index.sass";
 
+.fav-icon{  pointer-events: all; cursor:pointer; }
+
+.span .i {
+    pointer-events: initial;
+}
+
+.h4 { // portfolio
+  background-color: grey;
+  color: white;
+}
+
 .text-s { // portfolio
   background-color: grey;
 }
@@ -85,8 +96,10 @@ $control-radius-small: 4px;
 
 .container-404 {
   padding: 50px;
-  background-image: url("404.jpg");
-  background-size: cover;
+    color: white;
+  background-color: $primary;
+  //background-image: url("404.jpg");
+  //background-size: cover;
   height: 900px;
 }
 
@@ -140,7 +153,9 @@ $control-radius-small: 4px;
   left: 0;
   height: 25px;
   width: 25px;
-  background-color: #aaa;
+  background-color: $primary;
+  opacity: 30%;
+
   border-radius: 20%;
 
 }
@@ -148,16 +163,19 @@ $control-radius-small: 4px;
 /* On mouse-over, add a grey background color */
 .checkbox-container:hover input ~ .checkbox-checkmark {
   background-color: $primary;
+  opacity: 70%;
 }
 
 /* When the checkbox is checked, add a blue background */
 .checkbox-container:hover input:checked ~ .checkbox-checkmark {
   background-color: $primary;
+  opacity: 70%;
 }
 
 /* When the checkbox is checked, add a blue background */
 .checkbox-container input:checked ~ .checkbox-checkmark {
-  background-color: #aaa;
+  background-color: $primary;
+  opacity: 30%;
 }
 
 /* Create the checkmark/indicator (hidden when not checked) */

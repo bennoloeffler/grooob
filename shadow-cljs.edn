@@ -1,5 +1,5 @@
 {:nrepl    {:port 7002}
- :dev-http {8080 ["public" "classpath:public"]}
+ :dev-http {8080 ["public" "classpath:public"]} ; for portfolio assests
  :builds
  {:app
   {
@@ -8,7 +8,8 @@
    :asset-path                         "/js"
    :modules                            {:app {:entries [grooob.app]}}
    :devtools                           {:watch-dir "resources/public"
-                                        :preloads  [re-frisk.preload]}
+                                        :preloads  [re-frisk.preload
+                                                    hashp.core]}
    :dev                                {:closure-defines {"re_frame.trace.trace_enabled_QMARK_" true}}
    :release                            {}
    :source-map                         true

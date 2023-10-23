@@ -287,6 +287,40 @@
                            :user/status       status
                            :user/email        email}])))))
 
+(defn check-and-add-user-facebook!
+  "Adds new user with facebook token
+  if not already exists with local password."
+  [status email tokens]
+  (clojure.pprint/pprint tokens)
+  ; token looks like:
+  ;{:google {:expires #<org.joda.time.DateTime@3f642d03 2023-07-23T16:02:28.737Z>,
+  ;          :extra-data {:scope "openid https://www.googleapis.com/auth/userinfo.email",
+  ;                       :token_type "Bearer"},
+  ;          :id-token "eyJhbGciOiJSUzI1NiIsImtpZCI6ImEzYmRiZmRlZGUzYmFiYjI2NTFhZmNhMjY3OGRkZThjMGIzNWRmNzYiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI2MDczOTcyNjEwMTktNGZrYmMyNWNoZ25vaG5sZGRqanFsM2w0dmY3YnU1dmYuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI2MDczOTcyNjEwMTktNGZrYmMyNWNoZ25vaG5sZGRqanFsM2w0dmY3YnU1dmYuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDI0NTQ3MzIyMTc4OTgxNDQ0NjkiLCJlbWFpbCI6ImxvZWZmbGVyQHYtdW5kLXMuZGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXRfaGFzaCI6IlowWVE0dllkZDRwTWlhbmhXaGVaNkEiLCJpYXQiOjE2OTAxMjQ1NDksImV4cCI6MTY5MDEyODE0OX0.propiHJa6pWOywpWApjtUq4J1VcWQ_DMk3ZG6B29ZtZ6vOB3OxXKaND7gH471xdFcHRWiI40RvCWQiOajrJuyFHP0w0oJtkwSh51Q5UhkAospEto87K9R3XmZlFTUsp4-eYszH0McxEdJ1371n6VrFvM9mkTrL-JoT_i59l0Plc8iYi98RRGOL--bZhUmarhldT_Ss5daWPRmqp4PpiwJSXlUmtZJkCYIpqVntKzvR__krImvwD7Q_h2zhdJ6LHwu0iel5FwVq-qu0jj0M834b7sStSVNwZrJzIstJeil-IdcxGHxVSdcBrBjvIe4XNIsmT5JwCrmBaGPwSrj5Ea9A",
+  ;          :token "ya29.a0AbVbY6PFWfePnQ7BtaHNCwG_ydfvilhp__H9pRKfP1wwJ230Em9apcuP9--0GZ-s-2Ix7Ylon83pLK5Q10H3Nyvs_OFW6a4qN-NYR2UyygLaGsKUnLl07eGwyjnhEuuuf6mnlC92XHBlN6zEkSzb0iCGV1KqaCgYKAUsSARMSFQFWKvPld40CbhjaYiLyAnNSf8AxEA0163"]
+  ; save and read with: (pr-str x) and (read-string (pr-str x))
+  ; :oauth2/access-tokens {:google...
+  (let [user     (find-entity-by :user/email email)
+        password (:user/password user)
+        ; TODO if google token exists???
+        tokens   (if (-> tokens :facebook :expires)
+                   ; the :expires date is a org.joda.time.DateTime
+                   ; change it to tick, so it can be written and read again.
+                   (update-in tokens [:facebook :expires] #(t/offset-date-time (str %)))
+                   ; if there is no :expires token (eg in tests):
+                   ; ignore and just return unchanged
+                   tokens)]
+    (if password
+      (throw (ex-info (str email ", :user/email already exists with password!")
+                      {:error "email exists with password" :email email}))
+      (do
+        (when user
+          (log/info "user" email "exists already with google-token... updating"))
+        (d/transact conn [{:user/facebook-token (pr-str tokens) #_(hashers/derive (pr-str tokens) {:alg :pbkdf2+sha256})
+                           :user/status         status
+                           :user/email          email}])))))
+
+
 (comment
   (t/offset-date-time (str (org.joda.time.DateTime.)))
   (read-string (pr-str {:token "something"}))
@@ -348,7 +382,7 @@
   (when-let [id (find-entity-by :user/email email)]
     ;(println "id" id)
     (let [raw (d/pull @conn
-                      '[:user/email :user/name {:user/status [:db/ident]} :user/password :user/google-token] ; pull string
+                      '[:user/email :user/name {:user/status [:db/ident]} :user/password :user/google-token :user/facebook-token] ; pull string
                       (:db/id id))]
       ;_ (println raw)
       ;{email :user/email name :user/name  status :user/status password :user/password} raw]
@@ -435,6 +469,16 @@
         ;_      (cprint (:user/google-token user))
         tokens (read-string (:user/google-token user))]
     (and tokens user)))
+
+(defn check-user-facebook
+  "is there a user with facebook-token"
+  [email]
+  (let [user   (find-user-by-email-raw email)
+        ;_      (println "the tokens from db:")
+        ;_      (cprint (:user/google-token user))
+        tokens (read-string (:user/facebook-token user))]
+    (and tokens user)))
+
 
 (defn mount-start-test-db-manual []
   (-> (only #{#'conn})

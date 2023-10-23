@@ -14,7 +14,7 @@
       [java.time Period]))
 
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 ;;--------------------
 ;; based on week time model

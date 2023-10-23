@@ -3,7 +3,8 @@
     [grooob.core :as core]
     [cljs.spec.alpha :as s]
     [expound.alpha :as expound]
-    [devtools.core :as devtools]))
+    [devtools.core :as devtools]
+    [grooob.debug.playback]))
 
 (extend-protocol IPrintWithWriter
   js/Symbol

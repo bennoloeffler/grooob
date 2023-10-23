@@ -450,7 +450,7 @@
                       :stroke       "white"
                       :stroke-width 1
                       :fill-opacity 0.7
-                      :fill         utils/background-color}]
+                      :fill         utils/primary-color}]
             (t svg-offset-x (+ doc-offset)
                ;"grid" @grid
                ;"cross" @cross-data
@@ -495,7 +495,7 @@
                       :stroke       "white"
                       :stroke-width 1
                       :fill-opacity 0.7
-                      :fill         utils/background-color}]]]))))
+                      :fill         utils/primary-color}]]]))))
 
 
 #_(def project-view-keydown-rules

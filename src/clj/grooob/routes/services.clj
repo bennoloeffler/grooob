@@ -86,7 +86,7 @@
                                   (throw e))))))}}]
 
    ["/login-google"
-    {:post {:summary "user authentictes with :session :identity"
+    {:post {:summary "identify with google account"
             ;:parameters {:body {:user string? :pw string?}}
             :handler (fn [{session :session oauth2 :oauth2/access-tokens :as data}]
                        ;(println "AFTER client got session and called back to server:")
@@ -98,6 +98,19 @@
                          ;(ok {:identity user :session session})
                          (unauthorized
                            {:message "client tried google login - but no user with token found."})))}}]
+   ["/login-facebook"
+    {:post {:summary "identify with facebook account"
+            ;:parameters {:body {:user string? :pw string?}}
+            :handler (fn [{session :session oauth2 :oauth2/access-tokens :as data}]
+                       ;(println "AFTER client got session and called back to server:")
+                       ;(cprint data)
+                       (if (db/check-user-facebook (-> data :session :identity))
+                         (-> ; TODO do we need that or is the session just kept?
+                           (ok {:identity (-> data :session :identity)})
+                           (assoc :session (assoc session :identity (-> data :session :identity))))
+                         ;(ok {:identity user :session session})
+                         (unauthorized
+                           {:message "client tried facebook login - but no user with token found."})))}}]
    ["/login"
     {:post {:summary    "user authentictes with email and password. auth-type = :auth (EDN) or \"auth\" (json)"
             :parameters {:body {:user string? :pw string?}}

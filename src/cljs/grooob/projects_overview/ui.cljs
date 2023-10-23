@@ -21,7 +21,7 @@
             [cognitect.transit :as transit]
             [re-pressed.core :as rp]
             [grooob.projects-overview.events :as e]
-            [grooob.re-comps.ui :as re-c])
+            [grooob.comps.ui :as cui])
 
   (:import goog.History
            [goog.events EventType KeyHandler]))
@@ -36,7 +36,7 @@
     (rf/dispatch-sync [:grid-view/init component-id])
     (fn []
       [:<>
-       [re-c/overview-proj-details-menu]
+       [cui/overview-proj-details-menu]
        #_[:div "project: " (str (last (get (vec (:projects @model)) (:project @cross))))]
        ;[:pre (with-out-str (pprint @model))]
        ;[:pre (with-out-str (pprint @project))]

@@ -46,7 +46,7 @@
                   (assoc :alert-blink true))
      :timeout {:id    :alert-blink
                :event [:remove-alert-blink]
-               :time  100}}))
+               :time  300}}))
 
 (rf/reg-event-db
   :remove-alert-blink

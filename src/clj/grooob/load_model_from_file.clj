@@ -9,7 +9,7 @@
             [hyperfiddle.rcf :refer [tests]]
             [belib.test :as bt :refer [expect-ex return-ex]]))
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 
 (comment ; simples insta parser

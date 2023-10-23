@@ -106,13 +106,14 @@
       ;(println "event: u=" u)
       {:db (assoc db :current-random-user u)})))
 
-(rf/reg-event-db
+(rf/reg-event-fx
   :login-success
-  (fn [db [_ data]]
+  (fn [cofx [_ data]]
     (println "login success: " data)
-    (-> db
-        (assoc :user data)
-        (dissoc :user-tmp))))
+    {:db       (-> (:db cofx)
+                   (assoc :user data)
+                   (dissoc :user-tmp))
+     :dispatch [:common/navigate! :models-list]}))
 
 (rf/reg-event-fx
   :login-failure
@@ -143,11 +144,11 @@
                   :on-failure      [:login-failure]}}))
 
 
-(rf/reg-event-db
+(rf/reg-event-fx
   :register-success
-  (fn [db [_ data]]
-    (println "register success: " data)
-    db))
+  (fn [cofx [_ data]]
+    {:db       (assoc (:db cofx) :created-account "Please login with your new account data...")
+     :dispatch [:common/navigate! :home]}))
 
 (rf/reg-event-fx
   :register-failure
@@ -187,6 +188,18 @@
                   :response-format (ajax/transit-response-format {:keywords? true})
                   :on-success      [:login-success]
                   :on-failure      [:login-failure]}}))
+
+(rf/reg-event-fx
+  :login-facebook
+  (fn [cofx [_ data]]
+    {:http-xhrio {:method          :post
+                  :params          data
+                  :uri             "/api/login-facebook"
+                  :format          (ajax/json-request-format)
+                  :response-format (ajax/transit-response-format {:keywords? true})
+                  :on-success      [:login-success]
+                  :on-failure      [:login-failure]}}))
+
 
 (rf/reg-event-db
   :login-google-success

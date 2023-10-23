@@ -1,5 +1,6 @@
 (ns grooob.core
   (:require
+    [belib.malli :as bm]
     [day8.re-frame.http-fx]
     [reagent.dom :as rdom]
     [reagent.core :as r]
@@ -10,21 +11,24 @@
     [grooob.experiments :as ex]
     [grooob.events]
     [grooob.utils :as utils]
-    [grooob.model.model :as model]
+    [grooob.model.model-malli :as model]
     [reitit.core :as reitit]
     [reitit.frontend.easy :as rfe]
     [clojure.string :as string]
     [belib.hiccup :as bh]
     [grooob.events-timeout]
     #_[grooob.project-ui :as ui]
-    [grooob.re-comps.ui :as re-c]
+    [grooob.comps.ui :as cui]
     [grooob.project-single-view.ui :as psv]
     [grooob.projects-overview.ui :as pov]
     [grooob.project-details.ui :as pdv]
     [grooob.raw-data-view.ui :as rdv]
     [re-pressed.core :as rp]
     [grooob.debug.playback]
-    [grooob.debug.portfolio :as ui-test])
+    [grooob.debug.portfolio :as ui-test]
+    [grooob.ui-login.core :as ui-login]
+    [grooob.debug.scenes]
+    [grooob.debug.on-off-ui-tests :as on-off-ui-tests])
   (:import goog.History
            [goog.events EventType KeyHandler]))
 
@@ -53,148 +57,18 @@
 ; Doc: https://github.com/day8/re-com
 
 
-(defn change-once-after
-  "Returns a reagent/atom with value before.
-  Changes it once after time to
-  value then.
-  Example:
-  (defn login-with-google-button-1 []
-    (let [bounce-off (change-once-after 3000 \"fa-bounce\" nil)]
-      (fn []
-        [:span.icon.is-large>i
-          (bh/cs @bounce-off \"fas fa-lg fa-brands fa-google\")])))"
-  [time before then]
-  (let [to-change (r/atom before)]
-    (js/setTimeout #(reset! to-change then) time)
-    to-change))
+(defn logout-user-button [classes]
+  [:a.button
+   (merge {:href "#/logout" :on-click #(rf/dispatch [:user/logout])}
+          (bh/cs classes))
+   [:span.icon>i.fas.fa-1x.fa-right-from-bracket]
+   [:span "logout"]])
 
-(defn change-continuously
-  "returns a reagent/atom and changes it every
-  intervall milliseconds to the next value
-  in the collection coll."
-  [intervall coll]
-  (let [idx       (atom 0)
-        to-change (r/atom (get coll @idx))]
-    (letfn [(change-it []
-              (swap! idx inc)
-              (when (< @idx (count coll))
-                (reset! to-change (get coll @idx))
-                (js/setTimeout change-it intervall)))]
-      (js/setTimeout change-it intervall)
-      to-change)))
-
-(defn fa-smaller []
-  (change-continuously 35 ["fa-10x" "fa-9x" "fa-8x" "fa-7x" "fa-6x" "fa-5x" "fa-4x" "fa-3x" "fa-2x" "fa-1x" "fa-sm" "fa-xs" "fa-2xs" "fa-2xs" "fa-xs" "fa-sm" "fa-1x" "fa-lg"]))
-
-(defn fa-bounce-off []
-  (change-once-after 3000 "fa-bounce" nil))
-
-(defn input-field
-  "Assoc data-atom key value-of-input at every key stroke."
-  [data-atom key type placeholder]
-  [:input.input
-   {:type        (name type)
-    :placeholder placeholder
-    :on-change   #(let [val (-> % .-target .-value)]
-                    (swap! data-atom assoc key val))}])
-
-
-(defn register-button []
-  (let [smaller (fa-smaller)]
-    (fn []
-      [:a.button.is-outlined.mr-1.is-fullwidth.is-primary
-       {:href "#/register"}
-       [:span.icon.is-large>i (bh/cs @smaller "fas fa-pen-nib")]
-       [:span "create free account"]])))
-
-
-(defn login-with-google-button []
-  (let [bounce-off (fa-bounce-off)]
-    (fn []
-      [:a.button.is-outlined.mr-1.is-fullwidth
-       {:href "/login-with-google"}
-       [:span.icon.is-large>i (bh/cs @bounce-off "fas fa-lg fa-brands fa-google")]
-       [:span "login with google account"]])))
-
-; https://lambdaisland.com/episodes/passwordless-authentication-ring-oauth2
-
-(defn login-form []
-  (fn []
-    (let [data (atom {:user "" :pw ""})]
-      (fn []
-        [:div.container #_{:style {:background utils/background-color}}
-         [:div.columns
-          [:div.column.is-5
-
-           [:div.columns.is-flex.is-flex-direction-column
-            [:br]
-            ;[:br]
-            [:div.column [register-button]]
-            [:div.divider "or login with your google account"]
-            [:div.column [login-with-google-button]]
-            ;[:br]
-            [:div.divider "or login with email and password"]
-            [:div.column
-             [:label {:for "email"} "Email"]
-             [input-field data :user :text "Email adress"]]
-            [:div.column
-             [:label {:for "Name"} "Password"]
-             [input-field data :pw :password "Password"]
-             [:a.is-size-7.has-text-primary {:href "#/forget-password"} "forgot password?"]]
-            [:div.column
-             [:button.button.is-outlined.is-fullwidth {:on-click #(rf/dispatch [:user/login (:user @data) (:pw @data)])}
-              [:span.icon.is-large>i.fas.fa-1x.fa-sign-in-alt] [:span "login"]]
-             #_[:button.button.is-primary.is-fullwidth
-                {:type     "submit"
-                 :on-click #(rf/dispatch [:user/login (:user @data) (:pw @data)])}
-                "Login"]]
-            [:div.has-text-centered
-             [:p.is-size-7 "Don't have a free account? " [:a.has-text-primary {:href "#/register"} [:b " Sign up"]]]]]]]]))))
-
-
-(defn register-form []
-  (fn []
-    (let [data (atom {:name "" :email "" :pw "" :pw-repeat ""})]
-      [:div.container ; columns.is-flex.is-flex-direction-column.box
-       [:div.columns
-        [:div.column.is-5
-         [:div.columns.is-flex.is-flex-direction-column
-          [:div.column
-           [:label {:for "name"} "Name"]
-           [input-field data :name :text "Enter Name - optional"]]
-          [:div.column
-           [:label {:for "email"} "Email"]
-           [input-field data :email :text "Email address"]]
-          [:div.column
-           [:label {:for "Name"} "Password"]
-           [input-field data :pw :password "Password"]]
-          [:div.column
-           [:label {:for "Name"} "repeat Password"]
-           [input-field data :pw-repeat :password "repeat Password"]]
-
-          [:div.column
-           [:label.checkbox-container
-            [:input.input {:type      "checkbox"
-                           :on-change #(let [val (-> % .-target .-checked)]
-                                         (println val)
-                                         (swap! data assoc :terms val))}]
-            [:span.checkbox-checkmark {:style {:margin-top "3px"}}] [:div " I agree to the" [:a.has-text-primary {:href "#"} " terms and conditions"]]]]
-
-
-
-
-
-          ;[:label.checkbox [:input {:type "checkbox"}] " Remember me"]]
-          ;[:input {:type "checkbox"}] " I agree to the" [:a.has-text-primary {:href "#"} " terms and conditions"]]
-          [:div.column
-           [:button.button.is-outlined.is-fullwidth
-            {:type     "submit"
-             :on-click #(rf/dispatch [:user/register @data])}
-            [:span [:b "Create an account"]]]]
-          [:div.has-text-centered
-           [:p "Already have an account?" [:a.has-text-primary {:href "#"} " Login"]]]]]]])))
-
-
+(defn logout-link []
+  [:a.navbar-item
+   {:href "#/logout" :on-click #(rf/dispatch [:user/logout])}
+   [:span.icon>i.fas.fa-1x.fa-right-from-bracket]
+   [:span "logout"]])
 
 (defn nav-link [uri title page]
   [:a.navbar-item
@@ -203,39 +77,52 @@
    title])
 
 (defn navbar []
+
   (r/with-let [expanded? (r/atom false)]
-              [:nav.navbar.has-background-light>div.container
-               [:div.navbar-brand
-                [:a.navbar-item {:href "/" :style {:font-weight :bold}} [:img {:src "img/healthcare-skull-icon-23.png"}]]
-                [:span.navbar-burger.burger
-                 {:data-target :nav-menu
-                  :on-click    #(swap! expanded? not)
-                  :class       (when @expanded? :is-active)}
-                 [:span] [:span] [:span]]]
-               [:div#nav-menu.navbar-menu
-                {:class (when @expanded? :is-active)}
-                [:div.navbar-start
-                 [nav-link "#/" "Home" :home]
-                 [nav-link "#/about" "About" :about]
-                 [nav-link "#/ex" "Experiments" :experiments]
-                 [nav-link "#/projects-portfolio" "Projects" :projects-portfolio]
-                 [nav-link "#/project" "Project" :project]
-                 [nav-link "#/project-details" "Details" :project-details]]]
-               [:div.navbar-end
-                [:div.navbar-item.mr-3]]]))
+              (let [user-data (rf/subscribe [:user])]
+                [:nav.navbar.has-background-light>div.container
+                 [:div.navbar-brand
+                  [:a.navbar-item {:href "/" :style {:font-weight :bold}} [:img {:src "img/glasses-solid.png"}]]
+                  [:span.navbar-burger.burger
+                   {:data-target :nav-menu
+                    :on-click    #(swap! expanded? not)
+                    :class       (when @expanded? :is-active)}
+                   [:span] [:span] [:span]]]
+                 [:div#nav-menu.navbar-menu
+                  {:class (when @expanded? :is-active)}
+                  [:div.navbar-start
+
+                   [nav-link "#/models-list" (if @user-data "Your Data" "Demo") :models-list]
+                   [nav-link "#/about" "About" :about]
+                   ;[nav-link "#/ex" "Experiments" :experiments]
+                   ;[nav-link "#/projects-portfolio" "Projects" :projects-portfolio]
+                   ;[nav-link "#/project" "Project" :project]
+                   ;[nav-link "#/project-details" "Details" :project-details]
+                   (when @user-data
+                     [:<>
+                      [nav-link "#/user-profile" (:identity @user-data) :user-profile]
+                      [logout-link]])
+                   (when-not @user-data
+                     [nav-link "#/" "Login" :home])]]
+
+
+                 [:div.navbar-end
+                  [:div.navbar-item.mr-3]]])))
 
 ;[tb/test-button]
 
 
 (defn about-page []
-  [:div
+  [:section.section>div.container
    [:h1.title "grooob"]
-   [:h4.subtitle.is-white "capacity planning " [:br] "without distracting details"]
+   [:h4.subtitle "capacity planning " [:br] "without distracting details"]
    [:div "who did it:" [:br] [:span.has-text-primary " Benno Löffler"]]
    [:br]
    [:div "how to contact:" [:br]
-    [:span.has-text-primary "benno.loeffler AT gmx.de"] [:br]
-    [:a {:href.has-text-primary "https://www.linkedin.com/in/benno-l%C3%B6ffler-8b10929a/"} "Benno Löffler - on LinkedIn"]]
+    #_[:span.has-text-primary "benno.loeffler AT gmx.de"]
+    [:a {:href "mailto:benno.loeffler@gmx.de"} "benno.loeffler AT gmx.de"]]
+   [:a {:href "https://www.linkedin.com/in/benno-l%C3%B6ffler-8b10929a/"} "Benno Löffler - on LinkedIn"]
+   [:br]
    [:br]
    [:div "where to find sources:" [:br] [:a {:href "https://github.com/bennoloeffler/grooob"} " here on github"]]])
 
@@ -252,7 +139,7 @@
    [:h4.subtitle "register a free account"]
    ;[:br]
    ;[:br]
-   [register-form]])
+   [ui-login/register-form]])
 
 (defn user []
   (let [user (rf/subscribe [:user])]
@@ -277,6 +164,18 @@
            [:div "logged in: NO"])
        [pdv/project-details-view "project-details-form"]])))
 
+(defn models-list-page
+  []
+  (let [user-data (rf/subscribe [:user])]
+    (fn []
+      [:<>
+       [cui/overview-proj-details-menu]
+       #_(if @user-data
+           [:div "logged in: " [:b (:identity @user-data)]]
+           [:div "logged in: NO"])
+       [:div "models list"]])))
+
+
 (defn projects-portfolio-page []
   (let [user-data (rf/subscribe [:user])]
     (fn []
@@ -298,8 +197,11 @@
        [rdv/raw-data-form]])))
 
 
-(defn home-page []
-  (let [user-data (rf/subscribe [:user])]
+(defn user-profile-page []
+  (let [user-data       (rf/subscribe [:user])
+        created-account (rf/subscribe [:sub/data-path [:created-account]])
+        is-email        (fn [val] (bm/hum-err bm/email-schema val))
+        data            (atom {})]
     (fn []
       [:<>
        #_[ui/projects-overview-form]
@@ -307,16 +209,71 @@
           [:h1.title "grooob.com"
            [:h4.subtitle "capacity planning without distracting details"]]]
        (if @user-data
-         [pov/projects-overview-form "projects-overview-form"] #_[ui/projects-overview-form]
-         [login-form])])))
+         [:div.container>div.content
+          [:div.columns.is-mobile.is-gapless
+           [:div.column.is-11
+            #_[:input.input.is-fullwidth]
+            [:div.field [cui/input-field data :user :email "invite other users by email" "fa-user-plus" is-email]]]
+           [:div.column.is-1
+            [:div.field [:button.button.is-fullwidth
+                         [:span.icon>i.fas.fa-plus]]]]]
+          #_[:div (str "user logged in: " (:identity @user-data))]
+          #_[:div.columns
+             [:div.column.is-12
+              [:div.field
+               [logout-user-button "is-fullwidth is-primary is-outlined"]]]]
+
+          ;[:div "add credit card & upgrade to team-license"]
+          [:div.columns
+           [:div.column.is-12
+            [:div "add an additional email-adress as alternative login"]]]
+          [:div.columns.is-mobile.is-gapless
+           [:div.column.is-11
+            #_[:input.input.is-fullwidth]
+            [:div.field [cui/input-field data :user :email "additional login, email" "fa-envelope" is-email]]]
+           [:div.column.is-1
+            [:div.field [:button.button.is-fullwidth
+                         [:span.icon>i.fas.fa-plus]]]]]
+          [:br]
+          [:br]
+          [:br]
+          [:br]
+          [:div.columns
+           [:div.column.is-12
+            [:button.button.is-fullwidth.is-danger.is-outlined
+             [:b (str "delete account of " (:identity @user-data))]
+             [:span.icon
+              [:i.fas.fa-warning]]]]]]
+
+
+         [:div "not logged in"])])))
+
+(defn home-page []
+  (let [user-data       (rf/subscribe [:user])
+        created-account (rf/subscribe [:sub/data-path [:created-account]])]
+    (fn []
+      [:<>
+       #_[ui/projects-overview-form]
+       #_[:div
+          [:h1.title "grooob.com"
+           [:h4.subtitle "capacity planning without distracting details"]]]
+       (if @user-data
+         [user-profile-page]
+         #_[pov/projects-overview-form "projects-overview-form"] #_[ui/projects-overview-form]
+         [ui-login/login-form @created-account])])))
 
 
 (defn home-page-from-google []
   [:<>
    [:div "welcome back from google login..."]
    [:br] [:br]
-   [home-page]])
+   [models-list-page]])
 
+(defn home-page-from-facebook []
+  [:<>
+   [:div "welcome back from facebook login..."]
+   [:br] [:br]
+   [models-list-page]])
 
 
 
@@ -326,9 +283,9 @@
         alert-msg   (rf/subscribe [:alert-message])
         alert-blink (rf/subscribe [:alert-blink])]
     (fn []
-      (println "ui-test: " @ui-test/ui-test)
-      (println "page: " @page)
-      (if @ui-test/ui-test
+      ;(println "ui-test: " @on-off-ui-tests/ui-test)
+      ;(println "page: " @page)
+      (if @on-off-ui-tests/ui-test
         (do (ui-test/start)
             [:div])
         (if @page
@@ -337,14 +294,15 @@
            [:div {:style {:padding-top  "4px"
                           :padding-left "30px"
                           :font-weight  "bold"
-                          ;:color        "white"
+                          :color        "white"
                           :height       (if @alert-msg "40px" "5px")
-                          :background   (if @alert-msg "darkred" "white")
+                          :background   (if @alert-msg utils/primary-color "white")
                           :transition   "font-size 1s, height 500ms"
                           ;:visibility (if @alert-msg "visible" "hidden")
                           :font-size    (if @alert-msg "20px" "5px")}} @alert-msg]
 
-           [:section.section {:style {:background (if @alert-blink "darkred" "white" #_utils/background-color)}} [:div.container>div.content]
+           [:section.section {:style {:background (if @alert-blink utils/primary-color "white" #_utils/primary-color)}}
+            ;[:div.container>div.content
             [@page]]]
           [:div
            [navbar]
@@ -387,7 +345,19 @@
                        :view        #'home-page-from-google
                        :controllers [{:start (fn [req]
                                                (rf/dispatch [:login-google req])
-                                               #_(rf/dispatch [:view/init]))}]}]]))
+                                               #_(rf/dispatch [:view/init]))}]}]
+     ["/facebook-login" {:name        :facebook-login
+                         :view        #'home-page-from-facebook
+                         :controllers [{:start (fn [req]
+                                                 (rf/dispatch [:login-facebook req])
+                                                 #_(rf/dispatch [:view/init]))}]}]
+     ["/user-profile" {:name :user-profile
+                       :view #'user-profile-page}]
+     ["/models-list" {:name :models-list
+                      :view #'models-list-page}]]))
+
+
+
 
 
 
@@ -428,7 +398,7 @@
   (fn [cofx _]
     {:db (-> (:db cofx)
              (assoc-in [:model]
-                       (model/generate-random-model 20)
+                       model/test-model-with-start-end #_(model/generate-random-model 20)
                        #_(model/generate-simplest-model)))}))
 
 
@@ -442,6 +412,8 @@
   (rf/dispatch-sync
     [::rp/add-keyboard-event-listener "keydown"])
 
+  (rf/dispatch-sync [:common/navigate! :home])
+
   #_(ui/register-key-handler))
 
 
@@ -449,148 +421,3 @@
   (shadow/repl :app))
 
 
-
-
-
-
-#_(ns grooob.core
-    (:require
-      [day8.re-frame.http-fx]
-      [reagent.dom :as rdom]
-      [reagent.core :as r]
-      [re-frame.core :as rf]
-      [goog.events :as gev]
-      [goog.events.KeyCodes :as keycodes]
-      [goog.history.EventType :as HistoryEventType]
-      [markdown.core :refer [md->html]]
-      [grooob.ajax :as ajax]
-      [grooob.events]
-      [reitit.core :as reitit]
-      [reitit.frontend.easy :as rfe]
-      [clojure.string :as string])
-    (:import goog.History)
-    (:import [goog.events EventType KeyHandler]))
-#_(def state (r/atom {:shift 0}))
-#_(defn handle-event [event] ;an event object is passed to all events
-    (println (str "BELs event: " event)))
-
-
-#_(defn nav-link [uri title page]
-    [:a.navbar-item
-     {:href  uri
-      :class (when (= page @(rf/subscribe [:common/page-id])) :is-active)}
-     title])
-
-#_(defn navbar []
-    (r/with-let [expanded? (r/atom false)]
-                [:nav.navbar.is-info>div.container
-                 [:div.navbar-brand
-                  [:a.navbar-item {:href "/" :style {:font-weight :bold}} "grooob.com"]
-                  [:span.navbar-burger.burger
-                   {:data-target :nav-menu
-                    :on-click    #(swap! expanded? not)
-                    :class       (when @expanded? :is-active)}
-                   [:span] [:span] [:span]]]
-                 [:div#nav-menu.navbar-menu
-                  {:class (when @expanded? :is-active)}
-                  [:div.navbar-start
-                   [nav-link "#/" "Home" :home]
-                   [nav-link "#/about" "About" :about]]]]))
-
-#_(defn about-page []
-    [:section.section>div.container>div.content
-     [:h3 "about-text"]
-     [:div "text"]])
-
-#_(defn rect [x y w h f s sw]
-    [:rect {:x            x
-            :y            y
-            :rx           2
-            :ry           2
-            :width        w
-            :height       h
-            :fill         f
-            :stroke       s
-            :stroke-width sw}])
-
-#_(defn row [x y])
-
-#_(defn grid-sub-components []
-    (let [grid-width  10
-          square-size 8
-          localShift  (:shift @state)]
-      ;shift-state (* w (@state :shift))
-      ;shift-state-str (str shift-state)]
-      [:section.section>div.container>div.content
-       [:div ""] ;shift-state-str]
-       [:svg {:view-box "0 0 1000 1000"
-              :width    1800
-              :height   1800}
-        (for [x (range 100) y (range 100) :let [shift (if (zero? y) (* localShift grid-width) 0)]]
-          ^{:key (+ y (* x 1000))} [rect (+ shift (* grid-width x)) (* grid-width y) square-size square-size "lightgray" nil 0])
-
-        #_[:rect {:x      20 :y 50 :width 50
-                  :height 50
-                  :fill   "blue"}]]]))
-;[:line {:stroke "red" :stroke-width 1 :x1 0 :y1 25 :x2 25 :y2 100}]]]))
-
-#_(defn grid-basic []
-    [:section.section>div.container>div.content
-     [:div "-->"]
-     [:svg {:view-box "0 0 100 100"
-            :width    100
-            :height   100}
-      [:rect {:width  50
-              :height 50
-              :fill   "green"}
-       [:rect {:x      20 :y 50 :width 50
-               :height 50
-               :fill   "blue"}]
-       [:line {:stroke "red" :stroke-width 1 :x1 0 :y1 25 :x2 25 :y2 100}]]]])
-
-
-
-#_(defn home-page []
-    [:section.section>div.container>div.content
-     [:h3 "experiments..."]
-     ;[:p "here comes the grid:"]
-     #_[grid-sub-components]
-     #_[grid-basic]
-     #_[:br]
-     #_(when-let [docs @(rf/subscribe [:docs])]
-         [:div {:dangerouslySetInnerHTML {:__html (md->html docs)}}])])
-
-#_(defn page []
-    (if-let [page @(rf/subscribe [:common/page])]
-      [:div
-       #_[navbar]
-       [page]]))
-
-#_(defn navigate! [match _]
-    (rf/dispatch [:common/navigate match]))
-
-#_(def router
-    (reitit/router
-      [["/" {:name        :home
-             :view        #'home-page
-             :controllers [{:start (fn [_] (rf/dispatch [:view/init]))}]}]
-       ["/about" {:name :about
-                  :view #'about-page}]]))
-
-#_(defn start-router! []
-    (rfe/start!
-      router
-      navigate!
-      {}))
-
-;; -------------------------
-;; Initialize app
-#_(defn ^:dev/after-load mount-components []
-    (rf/clear-subscription-cache!)
-    (rdom/render [#'page] (.getElementById js/document "app")))
-
-#_(defn init! []
-    (start-router!)
-    (ajax/load-interceptors!)
-    (mount-components)
-    #_(register-key-handler))

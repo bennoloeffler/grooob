@@ -132,6 +132,17 @@
        [:span.icon.is-large>i (bh/cs "fas" "fa-1x" "fa-brands" @bounce-on-off "fa-google")]
        [:span "login with google"]])))
 
+(defn login-with-facebook-button []
+  (let [bounce-on-off (change-after 3000 "fa-bounce" nil)]
+    (fn []
+      [:a.button.m-1
+       (merge #_bb/all-events-map
+         {} #_(bb/filter-events-map #"drag")
+         {:href "/login-with-facebook"})
+       ;:on-click #(rf/dispatch [:user/login-with-google])}
+       [:span.icon.is-large>i (bh/cs "fas" "fa-1x" "fa-brands" @bounce-on-off "fa-facebook")]
+       [:span "login with facebook"]])))
+
 (defn create-user-button []
   [:a.button.m-1
    {:on-click #(rf/dispatch [:user/add-random-user])}
@@ -196,7 +207,7 @@
        [:div "current user: " [:strong (:identity @user)]]])))
 
 (defn experiments []
-  [:div
+  [:section.section>div.container
    [:h1.title "Experiments go here"]
    [show-size]
    [user]

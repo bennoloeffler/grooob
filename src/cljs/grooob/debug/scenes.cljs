@@ -1,16 +1,17 @@
 (ns grooob.debug.scenes
   (:require
     [portfolio.reagent :refer-macros [defscene]]
-    [grooob.re-comps.ui]
-    [grooob.core]))
+    #_[grooob.comps.ui]
+    #_[grooob.ui-login.core]))
 
 
-(defscene button
-          [:button.button "Click me"])
+#_(defscene button
+            [:button.button "Click me"])
 
-(defscene menu
-          [grooob.re-comps.ui/overview-proj-details-menu])
 
-(defscene login
-          [grooob.core/login-form])
+#_(defscene login
+            [grooob.ui-login.core/login-form])
+
+#_(defscene register
+            [grooob.ui-login.core/register-form])
 

@@ -19,6 +19,11 @@
   :db/valueType   :db.type/string
   :db/cardinality :db.cardinality/one}
 
+ {:db/doc         "facebook token - encrypted"
+  :db/ident       :user/facebook-token
+  :db/valueType   :db.type/string
+  :db/cardinality :db.cardinality/one}
+
  {:db/doc         "User email address"
   :db/ident       :user/email
   :db/valueType   :db.type/string

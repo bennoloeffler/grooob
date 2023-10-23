@@ -305,7 +305,7 @@
                      :stroke       "white"
                      :stroke-width 1
                      :fill-opacity 0.7
-                     :fill         utils/background-color}]
+                     :fill         utils/primary-color}]
            #_(t svg-offset-x (+ doc-offset)
                 "grid" @_grid
                 "cross" @_cross-data
@@ -327,7 +327,7 @@
                      :stroke       "white"
                      :stroke-width 1
                      :fill-opacity 0.7
-                     :fill         utils/background-color}]]]]))))
+                     :fill         utils/primary-color}]]]]))))
 
 (defn grid-form [component-id
                  _model
