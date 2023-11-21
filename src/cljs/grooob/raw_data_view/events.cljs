@@ -11,12 +11,13 @@
             [clojure.pprint :refer [pprint]]
             [belib.browser :as bb]
             [belib.spec :as bs]
+            [belib.core :as bc]
+
             [grooob.model.model-malli :as model-malli]
 
             [grooob.model.model :as model]
             [grooob.model.model-spec :as ms]
             [grooob.utils :as utils]
-            [belib.core :as bc]
             [ajax.core :as ajax]
             [goog.history.EventType :as HistoryEventType]
             [time-literals.read-write]
@@ -181,6 +182,20 @@
 
 (rf/reg-event-db
   :raw-data-view/save
-  (fn [db [_ model-key data]]
-    (-> db (assoc-in [:model model-key] data))))
+  (fn [db [_ data]]
+    ;(println "EVENT")
+    ;(println "data:")
+    ;(bc/p data)
+    ;(println "db:")
+    ;(bc/p db)
+    (let [new-db (bc/deep-merge-with (fn [_ b] b) db data)]
+      ;(println "new-db:")
+      ;(bc/p new-db)
+      new-db)))
 
+(comment
+  (bc/deep-merge-with (fn [a b] b)
+                      {:model {:projects  {:p 11
+                                           :a 44}
+                               :resources {:r 2}}}
+                      {:model {:projects {:p 22}}}))

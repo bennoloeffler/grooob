@@ -58,10 +58,10 @@
 
             [:div.column
              [:label {:for "email"} "Email"]
-             [cui/input-field data :user :email "Email adress" "fa-envelope"]]
+             [cui/input-field data :user "email" "Email adress" "fa-envelope"]]
             [:div.column
              [:label {:for "Name"} "Password"]
-             [cui/input-password-field data :pw "Password" "fa-lock" #(identity nil)]
+             [cui/input-password-field data :pw "type password here..." "fa-lock" #_#(identity nil)]
              [:a.has-text-primary {:href "#/forget-password"} "Forgot password?"]]
             [:div.column
              [:button.button.is-outlined.is-fullwidth {:on-click #(rf/dispatch [:user/login (:user @data) (:pw @data)])}
@@ -74,9 +74,9 @@
              [:p "Don't have an account? " [:a.has-text-primary {:href "#/register"} [:b " Sign up for free account"]]]]]]]]))))
 
 (defn register-form []
-  (let [data     (r/atom {:name "" :email "" :pw "" :pw-repeat "" :terms false})
-        pw-match (fn [d] (when-not (= (:pw d) (:pw-repeat d)) ["passwords do not match"]))
-        is-email (fn [val] (bm/hum-err bm/email-schema val))]
+  (let [data         (r/atom {:name "" :email "" :pw "" :pw-repeat "" :terms false})
+        pw-match-err (fn [local-data] (when-not (= (:pw @data) local-data) ["passwords do not match"]))
+        email-err    (fn [val] (bm/hum-err bm/email-schema val))]
 
     (fn []
       [:div.container ; columns.is-flex.is-flex-direction-column.box
@@ -88,14 +88,20 @@
              [cui/input-field data :name :text "enter short name - optional" "fa-user"]]
           [:div.column
            ;[:label {:for "email"} "Email"]
-           [cui/input-field data :email :text "enter email address" "fa-envelope" is-email]]
+           [cui/input-field data :email :text "enter email address" "fa-envelope" email-err false true]]
           [:div.column
            ;[:label {:for "Name"} "Password"]
-           [cui/input-password-field data :pw "enter password"]]
+           ;[data-atom key type placeholder icon-left user-validate-fn validating-from-start write-through]
+           [cui/input-password-field data :pw "enter password" nil nil true]]
           [:div.column
            ;[:label {:for "Name"} "repeat Password"]
-           [cui/input-password-field data :pw-repeat "repeat password" nil (fn match-passwords [] (pw-match @data))]]
-
+           ; [data-atom key placeholder icon-left validator-fn write-through]
+           [cui/input-password-field
+            data :pw-repeat
+            "repeat password"
+            nil
+            (fn match-passwords [local-data] (pw-match-err local-data))
+            true]]
           [:div.column
            [:label.checkbox-container
             [:input.input {:type      "checkbox"
@@ -106,13 +112,14 @@
 
           ;[:label.checkbox [:input {:type "checkbox"}] " Remember me"]]
           ;[:input {:type "checkbox"}] " I agree to the" [:a.has-text-primary {:href "#"} " terms and conditions"]]
+          [:div (str @data)]
           [:div.column
            [:button.button.is-outlined.is-fullwidth.is-primary
             {:type     "submit"
              :disabled (or (not (:terms @data))
                            (cui/errors-in-password (:pw @data))
-                           (pw-match @data)
-                           (is-email (:email @data)))
+                           (pw-match-err (:pw-repeat @data))
+                           (email-err (:email @data)))
              :on-click #(rf/dispatch [:user/register @data])}
             [:span [:b "Create my account"]]
             [:span.icon.is-small

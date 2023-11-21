@@ -8,7 +8,7 @@
             [goog.events :as events]
             [goog.object :as gobj]
             [goog.functions]
-            [belib.core :as bc :refer [pp]]
+            [belib.core :as bc]
             [belib.browser :as bb]
             [belib.spec :as bs]
             [grooob.model.model-malli :as model-malli]

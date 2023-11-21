@@ -46,7 +46,7 @@
 (comment
   (use 'debux.core))
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 
 (def d t/date)
@@ -97,7 +97,7 @@
    {:error/fn
     (fn end-after-start [{{:keys [start end]} :value} _]
       (str "task: :end = " end " should be bigger than :start = " start))}
-   (fn [{:keys [start end]}] (> end start))])
+   (fn [{:keys [start end]}] (t/> end start))])
 
 (def task-schema
   [:and
@@ -163,6 +163,8 @@
 (tests
 
   (m/schema? (m/schema task-schema)) := true
+
+  (bm/hum-err task-schema short-task)
 
   (bm/hum-err-mult-test
     task-schema
@@ -313,15 +315,35 @@
       (bd/weekify :start)
       (bd/weekify :end)))
 
+(defn de-weekify-task [t]
+  (-> t
+      (dissoc :start-cw)
+      (dissoc :end-cw)))
+
 (defn weekify-tasks [p]
   (as-> (:tasks p) $
         (mapv #(weekify-task %) $)
+        (assoc p :tasks $)))
+
+(defn de-weekify-tasks [p]
+  (as-> (:tasks p) $
+        (mapv #(de-weekify-task %) $)
         (assoc p :tasks $)))
 
 (defn weekify-projects [m]
   (as-> (:projects m) $
         (mapv #(bd/weekify % :promised) $)
         (mapv #(weekify-tasks %) $)
+        (assoc m :projects $)))
+
+(defn de-weekify-projects [m]
+  (as-> (:projects m) $
+        (mapv #(dissoc % :promised-cw) $)
+        (mapv #(dissoc % :start) $)
+        (mapv #(dissoc % :start-cw) $)
+        (mapv #(dissoc % :end) $)
+        (mapv #(dissoc % :end-cw) $)
+        (mapv #(de-weekify-tasks %) $)
         (assoc m :projects $)))
 
 
@@ -419,25 +441,37 @@
         (mapv #(find-start-end % (:tasks %)) $)
         (assoc m :projects $)))
 
-(defn find-start-end-model [m]
+(defn create-all-caches [m]
   (as-> m $
         (weekify-projects $)
         (find-start-end-projects $)
-        (find-start-end $ (:projects $))))
+        (find-start-end $ (:projects $))
+        (reduce (fn [m d] (update-start-end m d))
+                $
+                (->> $ :projects (map :promised)))))
+
+(defn remove-all-caches [m]
+  (as-> m $
+        (de-weekify-projects $)
+        (dissoc $ :start)
+        (dissoc $ :end)
+        (dissoc $ :start-cw)
+        (dissoc $ :end-cw)))
+
 
 (def test-model (-> {:projects  [{:id       5
                                   :name     "p5"
-                                  :promised (d "2024-11-30")
+                                  :promised (d "2013-02-01")
                                   :tasks    [short-task
                                              short-task-2]}
                                  {:id       6
                                   :name     "p6"
-                                  :promised (d "2024-11-30")
+                                  :promised (d "2013-02-27")
                                   :tasks    [short-task-3
                                              short-task-4]}
                                  {:id       7
                                   :name     "p7"
-                                  :promised (d "2024-11-30")
+                                  :promised (d "2013-02-01")
                                   :tasks    [short-task-3
                                              short-task-4]}]
                      :resources [{:id   1
@@ -450,7 +484,11 @@
 
 (def test-model-with-start-end
   (-> test-model
-      find-start-end-model))
+      create-all-caches))
+
+(def decached-model (-> test-model-with-start-end
+                        remove-all-caches))
+
 
 ;;
 ;; ----------   API for view data from domain model   ----------
@@ -464,7 +502,8 @@
                                     end   (-> raw-project
                                               :end-cw
                                               first)]
-                                {:start-x start
+                                {:point   (-> raw-project :promised-cw first)
+                                 :start-x start
                                  :len-x   (max 1 (- end start)) ; not 0!
                                  :name    (:name raw-project)
                                  :id      (:id raw-project)}))
@@ -511,6 +550,8 @@
 ;;
 ;; ----------   API for the model   ----------
 ;;
+
+
 
 (defn move-task [m project-idx task-idx days]
   (if (= days 0)

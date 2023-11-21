@@ -10,8 +10,8 @@ Plan rough to see more.
 Less details. Less data. Less time.
 Explore the capacity impact of adding
 or moving of changing projects.
-Edit and view scenarios in realtime during
-meetings together.
+Playing with scenarios in realtime during
+meetings as a team.
 
 ## BUGs
 
@@ -20,11 +20,15 @@ meetings together.
 
 ## TODOs, next steps
 
-- import font-awesome, instead of material-icons  
-  in assets
+- make one Details view: grid + data
+- save models to user
+- view load
+
+
 - sort imports
 - make pre and post conditions in model switchable?
 - use https://github.com/weavejester/medley
+-
 - use-cases
     - generate simple raw capa data
     - generate simple project data
@@ -160,7 +164,7 @@ package.json should look like this
 watch and compile sass
 
 ```
-npm run start
+npm run start-css-watch
 ```
 
 watch and compile shadow-cljs

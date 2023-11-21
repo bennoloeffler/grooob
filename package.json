@@ -17,6 +17,6 @@
   "scripts": {
     "css-build": "node-sass --omit-source-map-url resources/scss/screen.scss resources/public/css/screen.css",
     "css-watch": "npm run css-build -- --watch",
-    "start": "npm run css-watch"
+    "start-css-watch": "npm run css-watch"
   }
 }

@@ -13,6 +13,8 @@
     [clojure.pprint :refer [pprint]]
     [belib.hiccup :as bh]
     [belib.spec :as bs]
+    [belib.core :as bc]
+
     [grooob.grid-view.ui :as grid-view]
     [grooob.model.model-spec :as ms]
     [grooob.model.model-malli :as mm]
@@ -169,19 +171,26 @@
             ;[:pre (with-out-str (pprint @_resources))]
             [cui/overview-proj-details-menu]
             [raw-data-form-2
-             @_resources
+             (-> (mm/remove-all-caches {:resources @_resources})
+                 :resources)
              [:vector :grooob-resource]
              (fn [data]
                ;(println "saving: " data)
-               (rf/dispatch [:raw-data-view/save :resources data]))
+               (let [data (-> {:resources data}
+                              mm/create-all-caches)]
+                 (rf/dispatch [:raw-data-view/save {:model data}])))
              "RESOURCES"]
             [:br]
             [raw-data-form-2
-             @_projects
+             (-> (mm/remove-all-caches {:projects @_projects})
+                 :projects)
              [:vector :grooob-project]
              (fn [data]
-               ;(println "saving: " data)
-               (rf/dispatch [:raw-data-view/save :projects data]))
+               ;(println "saving: ")
+               ;(bc/p data)
+               (let [data (-> {:projects data}
+                              mm/create-all-caches)]
+                 (rf/dispatch [:raw-data-view/save {:model data}])))
              "PROJECTS"]])))
 
 

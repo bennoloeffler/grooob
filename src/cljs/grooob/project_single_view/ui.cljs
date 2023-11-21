@@ -27,6 +27,8 @@
     ;[grooob.project-single-view.core :as c]
     [cuerdas.core :as str])
 
+
+
   (:import goog.History
            [goog.events EventType KeyHandler]))
 
@@ -39,11 +41,18 @@
 #_(defn test-params [p]
     (let [x (str p "--" p)]
       (fn [] [:div (str "params: " x)])))
+(defn single-view-only [component-id]
+  (let [_project (rf/subscribe [:model/current-project "projects-overview-form"])]
+    (rf/dispatch-sync [:grid-view/init component-id])
+    (fn []
+      [grid-view/grid-form
+       component-id
+       _project
+       (e/keydown-rules component-id _project)])))
 
 (defn project-single-view [component-id]
   (let [;; TODO this :projects-overview-form s path is HARDCODED!
         _project (rf/subscribe [:model/current-project "projects-overview-form"])]
-    (rf/dispatch-sync [:grid-view/init component-id])
     (fn []
       [:<>
        [cui/overview-proj-details-menu]
@@ -51,10 +60,11 @@
        #_[:div "project: " (str (last (get (vec (:projects @model)) (:project @cross))))]
        ;[:pre (with-out-str (pprint @model))]
        ;[:pre (with-out-str (pprint @project))]
+       [single-view-only component-id]
+       #_[grid-view/grid-form
+          component-id
+          _project
+          (e/keydown-rules component-id _project)]])))
 
-       [grid-view/grid-form
-        component-id
-        _project
-        (e/keydown-rules component-id _project)]])))
 
 

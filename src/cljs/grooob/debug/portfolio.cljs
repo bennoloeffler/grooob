@@ -5,6 +5,8 @@
     [portfolio.ui :as ui]
     [grooob.debug.scenes]
     [grooob.comps.scenes]
+    [grooob.comps.scenes-basic]
+    #_[grooob.comps.scenes-entity]
     [grooob.ui-login.scenes]
 
     [grooob.debug.on-off-ui-tests :as on-off-ui-tests]))

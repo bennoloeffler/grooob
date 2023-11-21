@@ -148,24 +148,34 @@
                 :fill-opacity 0.2}]))))
 
 ; TODO split names and square?
-(defn one-y-line [component-id _cross row start-cw len-cw name id]
+(defn one-y-line [component-id _cross row start-cw len-cw name id point]
   (let [grid           (rf/subscribe [:sub/data-path [:view (keyword component-id) :grid]])
         browser-scroll (rf/subscribe [:grid-view/browser-scroll])]
     ;_cross         (rf/subscribe [:sub/data-path [:view (keyword component-id) :cross]])]
-    (fn [component-id _cross row start-cw len-cw name id]
-      (let [gx (* start-cw @grid)
-            gy (* row @grid)]
+    (fn [component-id _cross row start-cw len-cw name id point]
+      (let [point point
+            gx    (* start-cw @grid)
+            gy    (* row @grid)
+            gpx   (* point @grid)]
         (vec (cons :<> (conj (vec (map (fn [cw] [square component-id _cross (+ gx (* cw @grid)) gy])
                                        (range len-cw)))
-                             [:text.svg-non-select
-                              {:x                 (+ (get-svg-x-offset component-id) (* 2 @grid))
-                               :y                 (+ (/ @grid 2) gy)
-                               :fill              "black"
-                               ;:font-weight       "bold"
-                               :dominant-baseline "middle"
-                               :font-size         (* 0.8 @grid)
-                               :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
-                              (str name)])))))))
+                             [:<>
+                              [:text.svg-non-select
+                               {:x                 (+ (get-svg-x-offset component-id) (* 2 @grid))
+                                :y                 (+ (/ @grid 2) gy)
+                                :fill              "black"
+                                ;:font-weight       "bold"
+                                :dominant-baseline "middle"
+                                :font-size         (* 0.8 @grid)
+                                :dummy             @browser-scroll} ; just to update the :x by (get-svg-x-offset)
+                               (str name)]
+                              (if point [:circle {:cx           gpx
+                                                  :cy           (+ (/ @grid 2) gy)
+                                                  :r            10
+                                                  :stroke       "white"
+                                                  :stroke-width 1
+                                                  :fill-opacity 0.7
+                                                  :fill         utils/primary-color}])])))))))
 
 #_(defn map-one-y-line [component-id _cross start-x-total row {:keys [start-x len-x name id]}]
     [one-y-line component-id _cross row (- start-x start-x-total) len-x name id])
@@ -175,7 +185,7 @@
     (fn [component-id _model] (let [start-x-total (:min-cw @_model)
                                     sorted-model  @_model #_(update @_model :projects model/sorted-map-by-key)
                                     projects-html (vec (cons :<> (map-indexed
-                                                                   (fn [row {:keys [start-x len-x name id]}]
+                                                                   (fn [row {:keys [start-x len-x name id point]}]
                                                                      [one-y-line
                                                                       component-id
                                                                       _cross
@@ -183,7 +193,8 @@
                                                                       (- start-x start-x-total)
                                                                       len-x
                                                                       name
-                                                                      id])
+                                                                      id
+                                                                      (- point start-x-total)])
                                                                    #_(partial map-one-y-line component-id _cross start-x-total)
                                                                    (:projects sorted-model))))]
                                 projects-html))))
@@ -301,7 +312,7 @@
            [y-axis component-id _model]
            [x-axis _model _grid]
            [cursor component-id _model _grid]
-           [:circle {:cx           0 :cy 0 :r 25
+           [:circle {:cx           0 :cy 0 :r 5
                      :stroke       "white"
                      :stroke-width 1
                      :fill-opacity 0.7
@@ -323,7 +334,7 @@
                 ;"doc-offset" (quot doc-offset @grid)
 
                 #_"browser-scroll - just for update: " #_@browser-scroll)
-           [:circle {:cx           x-px :cy y-px :r 25
+           [:circle {:cx           x-px :cy y-px :r 5
                      :stroke       "white"
                      :stroke-width 1
                      :fill-opacity 0.7
@@ -335,6 +346,7 @@
 
   (if (or (not @_model) (= (:projects @_model) []))
     [:div (str "no model for component: " component-id)]
+
     (let [scroll-listener (atom nil)
           m-up-listener   (atom nil)
           m-down-listener (atom nil)

@@ -64,7 +64,8 @@
                  [lambdaisland/deep-diff2 "2.10.211"]
                  [instaparse "1.4.12"]
                  [dev.weavejester/medley "1.6.0"]
-                 [no.cjohansen/portfolio "2023.07.15"]]
+                 [no.cjohansen/portfolio "2023.07.15"]
+                 [org.clojars.abhinav/snitch "0.1.13"]]
 
 
 

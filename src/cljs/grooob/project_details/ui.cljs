@@ -11,9 +11,9 @@
             [goog.functions]
             [clojure.pprint :refer [pprint]]
             [belib.browser :as bb]
-            [belib.spec :as bs]
+            [belib.date-time :as bd]
             [grooob.grid-view.ui :as grid-view]
-            [grooob.model.model-spec :as ms]
+            [grooob.model.model-malli :as mm]
             [grooob.utils :as utils]
             [belib.core :as bc]
             [ajax.core :as ajax]
@@ -24,16 +24,58 @@
             [re-pressed.core :as rp]
             [grooob.project-details.events :as e]
             [grooob.comps.ui :as cui]
-            [lambdaisland.deep-diff2 :as ddiff]))
+            [lambdaisland.deep-diff2 :as ddiff]
+            [grooob.project-single-view.ui :as psv]))
 
 (def model-history (atom ()))
 ;(def counter (atom 0))
 
+#_(rf/reg-event-db
+    :update-task
+    (fn [db [_ p-id delta-task]]
+      (println "update task, delta: " delta-task)
+      (assoc db :model (model/update-task (:model db) p-id delta-task))))
+
 (rf/reg-event-db
-  :update-task
-  (fn [db [_ p-id delta-task]]
-    (println "update task, delta: " delta-task)
-    (assoc db :model (model/update-task (:model db) p-id delta-task))))
+  :set/date
+  (fn [db [_ [entity-path date-key date-value]]]
+    (println "in event :set/date : " entity-path date-key date-value)
+    (let [d       (t/date date-value)
+          db-task (bd/assoc-date-in db entity-path date-key d)]
+      db-task)))
+
+(rf/reg-event-db
+  :set/update-cache-by-task
+  (fn [db [_ [p-path date-value]]]
+    ;(println "in event: :set/update-cache" p-path date-value)
+    (let [d       (t/date date-value)
+          db-proj (update-in db p-path mm/update-start-end d)
+          m-path  (vec (-> p-path drop-last drop-last))
+          db-mod  (update-in db-proj m-path mm/update-start-end d)]
+      db-mod)))
+
+(defn update-task [{:keys [full-path value]}]
+  (let [entity-path (vec (drop-last full-path))
+        key         (last full-path)]
+    ;(println "path: " entity-path ", key: " key ", value: " value)
+    (rf/dispatch [:set/date [entity-path key value]])
+    (rf/dispatch [:set/update-cache-by-task [(-> entity-path drop-last drop-last) value]])))
+
+(rf/reg-event-db
+  :set/update-cache-by-promised
+  (fn [db [_ [m-path date-value]]]
+    (println "in event: :set/update-cache-by-promised" m-path date-value)
+    (let [d (t/date date-value)]
+      (update-in db m-path mm/update-start-end d))))
+
+
+(defn update-promised [{:keys [full-path value]}]
+  (let [entity-path (vec (drop-last full-path))
+        key         (last full-path)]
+    (println "update-promised, path: " entity-path ", key: " key ", value: " value)
+    (rf/dispatch [:set/date [entity-path key value]])
+    (rf/dispatch [:set/update-cache-by-promised [(-> entity-path drop-last drop-last) value]])))
+
 
 (defn render-project-details-form [component-id _model key-down-rules]
   (let [;browser-size   (rf/subscribe [:view/browser-size])
@@ -63,7 +105,7 @@
         [:<>
          ;[:div.select.is-small.is-fullwidth [:select [:option "res-4"] [:option "reds-1"] [:option "res-8"] [:option "res-3"] [:option "res-2"] [:option "res-6"] [:option "res-9"] [:option "res-10"] [:option "res-7"] [:option "res-5"]]]
          [:div.columns.mt-0.mb-0.pt-0.pb-0.is-mobile
-          [:div.column.is-offset-2.mt-0.mb-0.pt-0.pb-0.is-mobile
+          [:div.column.mt-0.mb-0.pt-0.pb-0.is-mobile
            [:h1.is-6.mb-1.pl-2 "selected Project"]]]
          #_[cui/edit-one-field
             true
@@ -71,12 +113,23 @@
              :entity-map-path [:model :projects pr-idx]}
             ;:entity-id-key   :g/entity-id}
             {:field-key :name}]
-         [cui/new-edit-one-field
+         [cui/edit-one-entity
           {:entities-path [:model :projects]
            :entity-id     pr-idx}
-          {:field-key :name}
+          [{:field-key :name}
+           {:field-key  :promised
+            :field-type :date
+            :update-fn  update-promised}
+           {:field-key :start
+            :disabled  true}
+           {:field-key :end
+            :disabled  true}]
+
           {:label? true}]
 
+         [:br]
+         [psv/single-view-only "project-single-form"]
+         [:br]
          #_[cui/edit-one-field
             true
             {:entity-id       pr-idx
@@ -85,13 +138,13 @@
             {:field-key  :promised
              :field-type "date"}]
 
-         #_[cui/new-edit-one-field
+         #_[cui/edit-one-field
             {:entities-path [:model :projects pr-idx :tasks]
              :entity-id     0}
             {:field-key  :start
              :field-type "date"}]
 
-         #_[cui/new-edit-one-field
+         #_[cui/edit-one-field
             {:entities-path [:model :projects pr-idx :tasks]
              :entity-id     0}
             {:field-key     :resource-id
@@ -104,7 +157,7 @@
             [:div.column.is-offset-2.mt-0.mb-0.pt-0.pb-0.is-mobile
              [:h1.is-6.mb-1.mt-2.pl-2 "first Task"]]]
 
-         #_[cui/new-edit-one-entity
+         #_[cui/edit-one-entity
 
             {:entity-id     0
              :entities-path [:model :projects pr-idx :tasks]}
@@ -182,11 +235,11 @@
               #_:update-fn  #_[:update-task p-id]}]]
 
 
-         [:div.columns.mt-0.mb-0.pt-0.pb-0.is-mobile
-          [:div.column.mt-2.mb-1.pt-0.pb-0.is-mobile
-           [:h1.is-6.mt-3.pl-3 "all Tasks of selected Project"]]]
+         #_[:div.columns.mt-0.mb-0.pt-0.pb-0.is-mobile
+            [:div.column.mt-2.mb-1.pt-0.pb-0.is-mobile
+             [:h1.is-6.mt-3.pl-3 "all Tasks of selected Project"]]]
 
-         [cui/new-edit-all-entities #_cui/edit-one-entity
+         [cui/edit-all-entities #_cui/edit-one-entity
           true ; heading
           {;:entity-id       t-id
            :entities-path [:model :projects 0 :tasks]
@@ -199,13 +252,13 @@
 
            {:field-key     :start
             :field-type    "date"
-            :field-show-as "Start"}
-           ;:update-fn     [:update-task p-id]}
+            :field-show-as "Start"
+            :update-fn     update-task}
 
            {:field-key     :end
             :field-type    "date"
-            :field-show-as "End"}
-           ;:update-fn     [:update-task p-id]}
+            :field-show-as "End"
+            :update-fn     update-task}
 
            {:field-key     :resource-id
             :field-show-as "Resource"
@@ -263,15 +316,15 @@
              {:field-key :g/task-name
               #_:update-fn  #_[:update-task p-id]}]]
 
-         (let [mh   @model-history
-               diff (-> (ddiff/diff (second mh) (first mh))
-                        ddiff/minimize)]
+         #_(let [mh   @model-history
+                 diff (-> (ddiff/diff (second mh) (first mh))
+                          ddiff/minimize)]
 
-           [:<>
-            [:pre (str task-paths)]
-            ;[:pre @counter "  " (:g/name @_db-model)]
-            [:pre "-------  DIFF:\n\n" (with-out-str (pprint diff) #_(ddiff/diff (first mh) (second mh)))]
-            [:pre "-------  ALL:\n\n" (with-out-str (pprint @_db-model) #_(ddiff/diff (first mh) (second mh)))]])]))))
+             [:<>
+              [:pre (str task-paths)]
+              ;[:pre @counter "  " (:g/name @_db-model)]
+              [:pre "-------  DIFF:\n\n" (with-out-str (pprint diff) #_(ddiff/diff (first mh) (second mh)))]
+              [:pre "-------  ALL:\n\n" (with-out-str (pprint @_db-model) #_(ddiff/diff (first mh) (second mh)))]])]))))
 
 (defn projects-details-form [component-id
                              _model
@@ -290,8 +343,8 @@
          :component-did-mount
          (fn []
            ;(println "View mounted for " component-id)
-           (rf/dispatch [::rp/set-keydown-rules
-                         key-down-rules])
+           #_(rf/dispatch [::rp/set-keydown-rules
+                           key-down-rules])
 
            #_(reset! scroll-listener
                      (events/listen (.getElementById js/document component-id)
@@ -318,8 +371,8 @@
                                            :y (.-offsetY event)}))))))
          :component-will-unmount (fn []
                                    ;(println "View will unmount: " component-id)
-                                   (rf/dispatch [::rp/set-keydown-rules
-                                                 {}])
+                                   #_(rf/dispatch [::rp/set-keydown-rules
+                                                   {}])
                                    #_(events/unlistenByKey @scroll-listener)
                                    #_(events/unlistenByKey @m-up-listener)
                                    #_(events/unlistenByKey @m-down-listener)

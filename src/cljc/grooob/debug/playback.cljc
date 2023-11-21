@@ -26,14 +26,14 @@
   (require 'playback.preload) ; open the portal
 
   ; 2. eval in repl
-  #>>(defn make-something [aa bbb]
-       #> (let [a (/ aa 2)
-                b (/ bbb 3)]
-            #>> (->> (range (* a b))
-                     (map inc)
-                     ; 4. try change the 3 to 2 and reload (eval in repl)
-                     (map #(* 2 %))
-                     (map str))))
+  (defn make-something [aa bbb]
+    #>>(let [a (/ aa 2)
+             b (* bbb 3)]
+         #>> (->> (range (* a b))
+                  (map inc)
+                  ; 4. try change the 3 to 2 and reload (eval in repl)
+                  (map #(* 3 %))
+                  (map str))))
 
 
   ; 3. eval in repl

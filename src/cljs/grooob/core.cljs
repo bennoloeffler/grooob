@@ -27,7 +27,7 @@
     [grooob.debug.playback]
     [grooob.debug.portfolio :as ui-test]
     [grooob.ui-login.core :as ui-login]
-    [grooob.debug.scenes]
+    #_[grooob.debug.scenes]
     [grooob.debug.on-off-ui-tests :as on-off-ui-tests])
   (:import goog.History
            [goog.events EventType KeyHandler]))
