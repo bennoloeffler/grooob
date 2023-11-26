@@ -112,7 +112,6 @@
 
           ;[:label.checkbox [:input {:type "checkbox"}] " Remember me"]]
           ;[:input {:type "checkbox"}] " I agree to the" [:a.has-text-primary {:href "#"} " terms and conditions"]]
-          [:div (str @data)]
           [:div.column
            [:button.button.is-outlined.is-fullwidth.is-primary
             {:type     "submit"

@@ -184,7 +184,7 @@
                    ^{:key err} [:p err])])]]))))
 
 (defn errors-in-date [date-str]
-  (println "val: " date-str)
+  ;(println "val: " date-str)
   (if date-str
     (try (t/date date-str)
          nil ; no error
@@ -234,14 +234,11 @@ nil
                             (reset! local-data (str val))
                             (reset! dirty true)
                             (validate)
-                            (println "write through: " write-through)
+                            ;(println "write through: " write-through)
                             (when write-through
-                              (println "pw write through" key @local-data)
+                              ;(println "pw write through" key @local-data)
                               (reset! dirty false)
                               (swap! data-atom assoc key @local-data)))
-
-
-
 
             update-global (fn []
                             (reset! validating true)
@@ -300,7 +297,7 @@ nil
                              (reset! dirty false)
                              (swap! data-atom assoc key @local-data))
                            (when write-through
-                             (println "pw write through" key @local-data)
+                             ;(println "pw write through" key @local-data)
                              (reset! dirty false)
                              (swap! data-atom assoc key @local-data)))
         on-key-up        (fn [event]
@@ -323,7 +320,7 @@ nil
                                    (reset! dirty true)
                                    (call-validate-fn)
                                    (when write-through
-                                     (println "pw write through" key @local-data)
+                                     ;(println "pw write through" key @local-data)
                                      (reset! dirty false)
                                      (swap! data-atom assoc key @local-data))))
 
